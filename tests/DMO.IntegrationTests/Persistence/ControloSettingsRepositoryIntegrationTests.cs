@@ -18,15 +18,21 @@ namespace DMO.IntegrationTests.Persistence;
 
 /// <summary>
 /// P2-T05 env-gated integration test — <c>Controlo_Create → Definições</c> over the disposable
-/// PostgreSQL database: repairer register, machine assignments, PDF-directory setting (with the real
-/// server-side probe), email lists and email templates, with the version guards of §19.
+/// PostgreSQL database: PDF-directory setting (with the real server-side probe), email lists and
+/// email templates, with the version guards of §19.
 /// </summary>
 /// <remarks>
-/// Authority: P2-T05 contract §9–§14 (settings areas), §18 (transactions/replace-all), §19
-/// (concurrency) and §30 rows REP2/REP3/REP5, MAC1–MAC5, SET1, SET2, SET4–SET7, SET9, SET11
-/// (AC-D2/AC-D3/AC-E1/AC-E2/AC-E3/AC-F1/AC-F2/AC-F3/AC-F4/AC-F5/AC-F7/AC-F9). The fixed machine
-/// keys (B1..C3) and the single-row PDF setting make the shared DB determinism mandatory: every
-/// test clears the settings tables first (dependency order).
+/// Authority: P2-T05 contract §12–§14 (settings areas), §18 (transactions/replace-all), §19
+/// (concurrency) and §30 rows SET1, SET2, SET4–SET7, SET9, SET11
+/// (AC-F1/AC-F2/AC-F3/AC-F4/AC-F5/AC-F7/AC-F9). The single-row PDF setting makes the shared DB
+/// determinism mandatory: every test clears the settings tables first (dependency order).
+/// <para>
+/// <b>Superseded (F-06 cleanup, Owner clarification P2-T07 §34.3 / P2-T05 §31.3):</b> the
+/// repairer-register and machine-assignment cases (REP2/REP5, MAC1–MAC5) exercised the residual
+/// Controlo repairer members, which are DEAD in production and were removed; the live feature is
+/// owned by <c>Boquilhas > Definições</c> and its real-repository coverage lives in
+/// <c>BoquilhasDefinicoesEndpointsTests</c> / <c>BoquilhasPreJobonAssociationIntegrationTests</c>.
+/// REP3 remains here as a shared-repository regression guard.</para>
 /// </remarks>
 [Collection(PersistenceDatabaseCollection.Name)]
 public sealed class ControloSettingsRepositoryIntegrationTests
@@ -35,66 +41,11 @@ public sealed class ControloSettingsRepositoryIntegrationTests
     private static ControloDefinicoesService Definicoes(
         DmoDbContext context,
         IPdfDirectoryProbe? probe = null) => new(
-        new RepairerRepository(context),
-        new MachineRepairerAssignmentRepository(context),
         new PdfDirectorySettingsRepository(context),
         new EmailListRepository(context),
         new EmailTemplateRepository(context),
         new GlassDensitySettingsRepository(context),
         probe ?? new FixedPdfDirectoryProbe());
-
-    /// <summary>The six settled machine codes, in the settled order.</summary>
-    private static readonly string[] Machines = ["B1", "B2", "B3", "C1", "C2", "C3"];
-
-    /// <summary>
-    /// REP2 (AC-D2): a repairer rename keeps the SAME <c>repairer_id</c>, increments the version, is
-    /// visible in the list and a stale rename is refused with <c>StaleVersion</c>.
-    /// </summary>
-    [SkippableFact]
-    public async Task REP2_ANameChangeKeepsTheSameIdAndAStaleVersionIsRefused()
-    {
-        PersistenceTestDatabase.SkipIfNotConfigured();
-
-        await using var context = PersistenceTestDatabase.CreateContext();
-        await PersistenceTestDatabase.ApplyMigrationsAsync(context);
-        await ClearSettingsTablesAsync(context);
-
-        var token = Guid.NewGuid().ToString("N");
-
-        try
-        {
-            var services = Definicoes(context);
-            var original = $"rep-{token}";
-            var renamedTo = $"rep-{token}-renamed";
-
-            var created = Assert.IsType<SettingsResult.RepairerCreated>(await services.CreateRepairerAsync(
-                new CreateRepairerCommand(original), CancellationToken.None));
-            Assert.Equal(1, created.Version);
-
-            var renamed = Assert.IsType<SettingsResult.RepairerRenamed>(await services.RenameRepairerAsync(
-                new RenameRepairerCommand(created.RepairerId, ExpectedVersion: 1, renamedTo),
-                CancellationToken.None));
-            Assert.Equal(created.RepairerId, renamed.RepairerId); // the SAME id retains the row
-            Assert.Equal(2, renamed.Version);
-
-            var list = Assert.IsType<SettingsResult.RepairersFound>(await services.ListRepairersAsync(
-                CancellationToken.None)).Repairers;
-            Assert.Contains(list, item =>
-                item.RepairerId.Value == created.RepairerId
-                && item.Name == renamedTo
-                && item.Version == 2);
-
-            // A stale rename (observed version 1, current version 2) is refused; nothing written.
-            var stale = Assert.IsType<SettingsResult.Refused>(await services.RenameRepairerAsync(
-                new RenameRepairerCommand(created.RepairerId, ExpectedVersion: 1, $"rep-{token}-stale"),
-                CancellationToken.None));
-            Assert.Equal(SettingsRefusalReason.StaleVersion, stale.Reason);
-        }
-        finally
-        {
-            await ClearSettingsTablesAsync(context);
-        }
-    }
 
     /// <summary>
     /// REP3 (AC-D3): no delete route exists for repairers — the repository contract carries no
@@ -115,293 +66,6 @@ public sealed class ControloSettingsRepositoryIntegrationTests
             type.Name.Contains("DeleteRepairer", StringComparison.Ordinal));
 
         await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// REP5 (AC-D3): a repairer referenced by a machine assignment cannot be deleted — the RESTRICT
-    /// foreign key rejects the raw delete with <c>23503</c>.
-    /// </summary>
-    [SkippableFact]
-    public async Task REP5_ADeleteOfAReferencedRepairerIsRejectedByTheRestrictForeignKey()
-    {
-        PersistenceTestDatabase.SkipIfNotConfigured();
-
-        await using var context = PersistenceTestDatabase.CreateContext();
-        await PersistenceTestDatabase.ApplyMigrationsAsync(context);
-        await ClearSettingsTablesAsync(context);
-
-        try
-        {
-            var services = Definicoes(context);
-            var repairerId = Assert.IsType<SettingsResult.RepairerCreated>(await services.CreateRepairerAsync(
-                new CreateRepairerCommand($"rep-{Guid.NewGuid():N}"), CancellationToken.None)).RepairerId;
-
-            Assert.IsType<SettingsResult.AssignmentSet>(await services.SetMachineAssignmentAsync(
-                new SetMachineAssignmentCommand("B1", repairerId, null), CancellationToken.None));
-
-            var rejected = await Assert.ThrowsAsync<PostgresException>(() =>
-                context.Database.ExecuteSqlRawAsync(
-                    "DELETE FROM repairers WHERE repairer_id = @p",
-                    new NpgsqlParameter("p", repairerId)));
-
-            Assert.Equal("23503", rejected.SqlState);
-            Assert.Equal("FK_machine_repairer_assignments_repairers_repairer_id", rejected.ConstraintName);
-
-            Assert.Equal(
-                1,
-                await CountAsync(context, "repairers WHERE repairer_id = @p", new NpgsqlParameter("p", repairerId)));
-        }
-        finally
-        {
-            await ClearSettingsTablesAsync(context);
-        }
-    }
-
-    /// <summary>
-    /// MAC1 (AC-E1): every settled machine code accepts its first assignment at version 1; any other
-    /// machine token is refused with <c>MACHINE_UNKNOWN</c>.
-    /// </summary>
-    [SkippableFact]
-    public async Task MAC1_EverySettledMachineAcceptsItsFirstAssignmentAndUnknownMachinesAreRefused()
-    {
-        PersistenceTestDatabase.SkipIfNotConfigured();
-
-        await using var context = PersistenceTestDatabase.CreateContext();
-        await PersistenceTestDatabase.ApplyMigrationsAsync(context);
-        await ClearSettingsTablesAsync(context);
-
-        var token = Guid.NewGuid().ToString("N");
-
-        try
-        {
-            var services = Definicoes(context);
-
-            foreach (var machine in Machines)
-            {
-                var repairerId = Assert.IsType<SettingsResult.RepairerCreated>(await services.CreateRepairerAsync(
-                    new CreateRepairerCommand($"rep-{machine}-{token}"), CancellationToken.None)).RepairerId;
-
-                var set = Assert.IsType<SettingsResult.AssignmentSet>(await services.SetMachineAssignmentAsync(
-                    new SetMachineAssignmentCommand(machine, repairerId, null), CancellationToken.None));
-                Assert.Equal(machine, set.Machine);
-                Assert.Equal(1, set.Version);
-            }
-
-            foreach (var invalid in new[] { "B4", "Linha B", "C", "B" })
-            {
-                var refused = Assert.IsType<SettingsResult.ValidationFailed>(await services.SetMachineAssignmentAsync(
-                    new SetMachineAssignmentCommand(invalid, Guid.NewGuid(), null), CancellationToken.None));
-                Assert.Contains(ControloDefinicoesValidationErrors.MachineUnknown, refused.Errors);
-            }
-        }
-        finally
-        {
-            await ClearSettingsTablesAsync(context);
-        }
-    }
-
-    /// <summary>
-    /// MAC2 (AC-E2): changing ONE machine's assignment touches only that machine's row; the other
-    /// five assignments remain exactly as they were.
-    /// </summary>
-    [SkippableFact]
-    public async Task MAC2_ChangingOneMachineChangesOnlyThatMachinesAssignment()
-    {
-        PersistenceTestDatabase.SkipIfNotConfigured();
-
-        await using var context = PersistenceTestDatabase.CreateContext();
-        await PersistenceTestDatabase.ApplyMigrationsAsync(context);
-        await ClearSettingsTablesAsync(context);
-
-        var token = Guid.NewGuid().ToString("N");
-
-        try
-        {
-            var services = Definicoes(context);
-
-            var original = new Dictionary<string, Guid>();
-            foreach (var machine in Machines)
-            {
-                var repairerId = Assert.IsType<SettingsResult.RepairerCreated>(await services.CreateRepairerAsync(
-                    new CreateRepairerCommand($"rep-{machine}-{token}"), CancellationToken.None)).RepairerId;
-                original[machine] = repairerId;
-
-                Assert.IsType<SettingsResult.AssignmentSet>(await services.SetMachineAssignmentAsync(
-                    new SetMachineAssignmentCommand(machine, repairerId, null), CancellationToken.None));
-            }
-
-            var list = Assert.IsType<SettingsResult.AssignmentsFound>(await services.ListMachineAssignmentsAsync(
-                CancellationToken.None)).Assignments;
-            Assert.Equal(6, list.Count);
-
-            // B1 moves to a NEW repairer (observed version 1); the edit touches B1 only.
-            var replacement = Assert.IsType<SettingsResult.RepairerCreated>(await services.CreateRepairerAsync(
-                new CreateRepairerCommand($"rep-b1-new-{token}"), CancellationToken.None)).RepairerId;
-
-            var changed = Assert.IsType<SettingsResult.AssignmentSet>(await services.SetMachineAssignmentAsync(
-                new SetMachineAssignmentCommand("B1", replacement, ExpectedVersion: 1), CancellationToken.None));
-            Assert.Equal("B1", changed.Machine);
-            Assert.Equal(2, changed.Version);
-
-            var after = Assert.IsType<SettingsResult.AssignmentsFound>(await services.ListMachineAssignmentsAsync(
-                CancellationToken.None)).Assignments;
-
-            Assert.Equal(6, after.Count);
-            var byMachine = after.ToDictionary(assignment => assignment.Machine.Value);
-            Assert.Equal(replacement, byMachine["B1"].RepairerId.Value);
-
-            foreach (var machine in Machines.Skip(1))
-            {
-                Assert.Equal(original[machine], byMachine[machine].RepairerId.Value);
-                Assert.Equal(1, byMachine[machine].Version);
-            }
-        }
-        finally
-        {
-            await ClearSettingsTablesAsync(context);
-        }
-    }
-
-    /// <summary>
-    /// MAC3 (AC-E2): re-setting a machine with a different repairer updates that ONE row in place
-    /// (version bumped, repairer changed); other machines stay untouched.
-    /// </summary>
-    [SkippableFact]
-    public async Task MAC3_ResettingOneMachineUpdatesOnlyThatRowInPlace()
-    {
-        PersistenceTestDatabase.SkipIfNotConfigured();
-
-        await using var context = PersistenceTestDatabase.CreateContext();
-        await PersistenceTestDatabase.ApplyMigrationsAsync(context);
-        await ClearSettingsTablesAsync(context);
-
-        var token = Guid.NewGuid().ToString("N");
-
-        try
-        {
-            var services = Definicoes(context);
-            var assignments = new MachineRepairerAssignmentRepository(context);
-
-            var repairerA = Assert.IsType<SettingsResult.RepairerCreated>(await services.CreateRepairerAsync(
-                new CreateRepairerCommand($"rep-a-{token}"), CancellationToken.None)).RepairerId;
-            var repairerB = Assert.IsType<SettingsResult.RepairerCreated>(await services.CreateRepairerAsync(
-                new CreateRepairerCommand($"rep-b-{token}"), CancellationToken.None)).RepairerId;
-            var repairerC = Assert.IsType<SettingsResult.RepairerCreated>(await services.CreateRepairerAsync(
-                new CreateRepairerCommand($"rep-c-{token}"), CancellationToken.None)).RepairerId;
-
-            Assert.IsType<SettingsResult.AssignmentSet>(await services.SetMachineAssignmentAsync(
-                new SetMachineAssignmentCommand("B1", repairerA, null), CancellationToken.None));
-            Assert.IsType<SettingsResult.AssignmentSet>(await services.SetMachineAssignmentAsync(
-                new SetMachineAssignmentCommand("B2", repairerC, null), CancellationToken.None));
-
-            var b1Before = await assignments.GetByMachineAsync("B1", CancellationToken.None);
-            var b2Before = await assignments.GetByMachineAsync("B2", CancellationToken.None);
-            Assert.Equal(1, b1Before!.Version);
-            Assert.Equal(1, b2Before!.Version);
-
-            // B1 → B: only the B1 row changes.
-            var updated = Assert.IsType<SettingsResult.AssignmentSet>(await services.SetMachineAssignmentAsync(
-                new SetMachineAssignmentCommand("B1", repairerB, ExpectedVersion: 1), CancellationToken.None));
-            Assert.Equal(2, updated.Version);
-
-            var b1After = await assignments.GetByMachineAsync("B1", CancellationToken.None);
-            var b2After = await assignments.GetByMachineAsync("B2", CancellationToken.None);
-
-            Assert.Equal(repairerB, b1After!.RepairerId.Value);
-            Assert.Equal(2, b1After.Version);
-            Assert.Equal(repairerC, b2After!.RepairerId.Value); // untouched
-            Assert.Equal(1, b2After.Version); // untouched
-        }
-        finally
-        {
-            await ClearSettingsTablesAsync(context);
-        }
-    }
-
-    /// <summary>
-    /// MAC4 (AC-E2): clearing one machine removes ONLY its row; the other five assignments remain.
-    /// </summary>
-    [SkippableFact]
-    public async Task MAC4_ClearingOneMachineRemovesOnlyThatRow()
-    {
-        PersistenceTestDatabase.SkipIfNotConfigured();
-
-        await using var context = PersistenceTestDatabase.CreateContext();
-        await PersistenceTestDatabase.ApplyMigrationsAsync(context);
-        await ClearSettingsTablesAsync(context);
-
-        var token = Guid.NewGuid().ToString("N");
-
-        try
-        {
-            var services = Definicoes(context);
-
-            foreach (var machine in Machines)
-            {
-                var repairerId = Assert.IsType<SettingsResult.RepairerCreated>(await services.CreateRepairerAsync(
-                    new CreateRepairerCommand($"rep-{machine}-{token}"), CancellationToken.None)).RepairerId;
-
-                Assert.IsType<SettingsResult.AssignmentSet>(await services.SetMachineAssignmentAsync(
-                    new SetMachineAssignmentCommand(machine, repairerId, null), CancellationToken.None));
-            }
-
-            var cleared = Assert.IsType<SettingsResult.AssignmentCleared>(await services.ClearMachineAssignmentAsync(
-                new ClearMachineAssignmentCommand("C2", ExpectedVersion: 1), CancellationToken.None));
-            Assert.Equal("C2", cleared.Machine);
-
-            var list = Assert.IsType<SettingsResult.AssignmentsFound>(await services.ListMachineAssignmentsAsync(
-                CancellationToken.None)).Assignments;
-
-            Assert.Equal(5, list.Count);
-            Assert.DoesNotContain(list, assignment => assignment.Machine.Value == "C2");
-            Assert.Equal(5, Machines.Count(machine => list.Any(assignment => assignment.Machine.Value == machine)));
-        }
-        finally
-        {
-            await ClearSettingsTablesAsync(context);
-        }
-    }
-
-    /// <summary>
-    /// MAC5 (AC-E3): the resolution read returns exactly the current assignment of one machine, and
-    /// <c>null</c> once the assignment is cleared (absent row = none assigned).
-    /// </summary>
-    [SkippableFact]
-    public async Task MAC5_TheResolutionReadReturnsTheCurrentAssignmentAndNoneAfterClearing()
-    {
-        PersistenceTestDatabase.SkipIfNotConfigured();
-
-        await using var context = PersistenceTestDatabase.CreateContext();
-        await PersistenceTestDatabase.ApplyMigrationsAsync(context);
-        await ClearSettingsTablesAsync(context);
-
-        var token = Guid.NewGuid().ToString("N");
-
-        try
-        {
-            var services = Definicoes(context);
-            var assignments = new MachineRepairerAssignmentRepository(context);
-
-            var repairerId = Assert.IsType<SettingsResult.RepairerCreated>(await services.CreateRepairerAsync(
-                new CreateRepairerCommand($"rep-{token}"), CancellationToken.None)).RepairerId;
-
-            Assert.IsType<SettingsResult.AssignmentSet>(await services.SetMachineAssignmentAsync(
-                new SetMachineAssignmentCommand("B1", repairerId, null), CancellationToken.None));
-
-            var current = await assignments.GetByMachineAsync("B1", CancellationToken.None);
-            Assert.NotNull(current);
-            Assert.Equal(repairerId, current!.RepairerId.Value);
-            Assert.Equal(1, current.Version);
-
-            Assert.IsType<SettingsResult.AssignmentCleared>(await services.ClearMachineAssignmentAsync(
-                new ClearMachineAssignmentCommand("B1", ExpectedVersion: 1), CancellationToken.None));
-
-            Assert.Null(await assignments.GetByMachineAsync("B1", CancellationToken.None));
-        }
-        finally
-        {
-            await ClearSettingsTablesAsync(context);
-        }
     }
 
     /// <summary>

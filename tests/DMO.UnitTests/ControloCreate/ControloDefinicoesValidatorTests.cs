@@ -2,14 +2,14 @@ using DMO.Application.ControloCreate;
 using DMO.Application.Persistence;
 using DMO.Application.Repositories;
 using DMO.Domain.Controlo;
-using DMO.Domain.Tools;
 
 namespace DMO.UnitTests.ControloCreate;
 
 /// <summary>
-/// P2-T05 unit proofs of the Definições validation: rows REP1, REP2, SET6, SET7, SET9, MAC1 and
-/// SET1 of the test-to-acceptance matrix (<c>plans/contracts/P2-T05_CONTROLO_CREATE_CONTRACT.md</c>
-/// §26.4), over the closed §10.4/§12.2/§13.2/§14.2 token set.
+/// P2-T05 unit proofs of the Definições validation: rows SET6, SET7, SET9, SET1 and the
+/// glass-density correction rows GD-V1/GD-V2 of the test-to-acceptance matrix
+/// (<c>plans/contracts/P2-T05_CONTROLO_CREATE_CONTRACT.md</c> §26.4), over the closed
+/// §12.2/§13.2/§14.2 token set.
 /// </summary>
 /// <remarks>
 /// The pure static validator runs before any write and returns the exact contracted codes. The one
@@ -18,48 +18,17 @@ namespace DMO.UnitTests.ControloCreate;
 /// through the real service path that maps the typed persistence failure onto
 /// <c>ADDRESS_INVALID</c> (the validator itself only checks the minimal address shape; the contract
 /// row SET6 is class DB for exactly this reason).
+/// <para>
+/// <b>Superseded (F-06 cleanup, Owner clarification P2-T07 §34.3 / P2-T05 §31.3):</b> the repairer
+/// validation proofs (REP1/REP2, MAC1) exercised the residual Controlo repairer surface, which is
+/// DEAD in production and was removed; the live repairer validation is owned by
+/// <c>BoquilhasDefinicoesService.BoquilhasDefinicoesValidator</c> and covered by the Boquilhas
+/// tests. The shared error tokens (<c>NAME_REQUIRED</c>, <c>REPAIRER_NOT_FOUND</c>,
+/// <c>MACHINE_UNKNOWN</c>) remain in <see cref="ControloDefinicoesValidationErrors"/> because the
+/// Boquilhas surface consumes them.</para>
 /// </remarks>
 public sealed class ControloDefinicoesValidatorTests
 {
-    /// <summary>
-    /// REP1 (AC-D1) — the repairer register needs the name only: blank and whitespace names are
-    /// refused with exactly <c>NAME_REQUIRED</c>, and a name is accepted (trimmed) with no token.
-    /// </summary>
-    [Fact]
-    public void REP1_CreateRepairerRequiresANameWithTheExactToken()
-    {
-        Assert.Equal(
-            new[] { ControloDefinicoesValidationErrors.NameRequired },
-            ControloDefinicoesValidator.Validate(new CreateRepairerCommand(string.Empty)));
-        Assert.Equal(
-            new[] { ControloDefinicoesValidationErrors.NameRequired },
-            ControloDefinicoesValidator.Validate(new CreateRepairerCommand("   ")));
-
-        Assert.Empty(ControloDefinicoesValidator.Validate(new CreateRepairerCommand(" José ")));
-        Assert.Empty(ControloDefinicoesValidator.Validate(new CreateRepairerCommand("José")));
-    }
-
-    /// <summary>
-    /// REP2 (AC-D2) — the rename command requires its name with the same <c>NAME_REQUIRED</c> token
-    /// (and a missing repairer identity is the same refusal, resolved before any write); a valid
-    /// name validates clean.
-    /// </summary>
-    [Fact]
-    public void REP2_RenameRepairerRejectsABlankNameWithTheExactToken()
-    {
-        Assert.Equal(
-            new[] { ControloDefinicoesValidationErrors.NameRequired },
-            ControloDefinicoesValidator.Validate(new RenameRepairerCommand(Guid.NewGuid(), 1, "  ")));
-        Assert.Equal(
-            new[] { ControloDefinicoesValidationErrors.NameRequired },
-            ControloDefinicoesValidator.Validate(new RenameRepairerCommand(Guid.Empty, 1, "José")));
-
-        Assert.Empty(ControloDefinicoesValidator.Validate(
-            new RenameRepairerCommand(Guid.NewGuid(), 1, "José")));
-        Assert.Empty(ControloDefinicoesValidator.Validate(
-            new RenameRepairerCommand(Guid.NewGuid(), 7, "José Maria")));
-    }
-
     /// <summary>
     /// SET6 (AC-F4) — recipient addresses follow the minimal unbroken shape: exactly one <c>@</c>,
     /// non-blank local part and domain, no whitespace. Broken shapes are refused with exactly
@@ -200,43 +169,6 @@ public sealed class ControloDefinicoesValidatorTests
     }
 
     /// <summary>
-    /// MAC1 (AC-E1) — a one-machine assignment accepts exactly the six settled codes: <c>B4</c>,
-    /// <c>Linha B</c>, <c>C</c> and a blank are <c>MACHINE_UNKNOWN</c>; a settled machine with a
-    /// real repairer validates clean; an empty repairer id is <c>REPAIRER_NOT_FOUND</c>; a null
-    /// repairer id is the explicit clear and validates clean; the clear command enforces the same
-    /// closed machine set.
-    /// </summary>
-    [Fact]
-    public void MAC1_MachineAssignmentsAcceptOnlyTheSixSettledMachinesAndAResolvableRepairer()
-    {
-        foreach (var rejected in new[] { "B4", "Linha B", "C", "" })
-        {
-            Assert.Equal(
-                new[] { ControloDefinicoesValidationErrors.MachineUnknown },
-                ControloDefinicoesValidator.Validate(
-                    new SetMachineAssignmentCommand(rejected, Guid.NewGuid(), 1)));
-        }
-
-        Assert.Empty(ControloDefinicoesValidator.Validate(
-            new SetMachineAssignmentCommand("B1", Guid.NewGuid(), 1)));
-
-        Assert.Equal(
-            new[] { ControloDefinicoesValidationErrors.RepairerNotFound },
-            ControloDefinicoesValidator.Validate(
-                new SetMachineAssignmentCommand("B1", Guid.Empty, 1)));
-
-        // A null repairer id is the explicit clear for that machine, not a failure.
-        Assert.Empty(ControloDefinicoesValidator.Validate(
-            new SetMachineAssignmentCommand("B1", RepairerId: null, ExpectedVersion: null)));
-
-        // The clear command goes through the same closed machine set.
-        Assert.Equal(
-            new[] { ControloDefinicoesValidationErrors.MachineUnknown },
-            ControloDefinicoesValidator.Validate(new ClearMachineAssignmentCommand("B4", 1)));
-        Assert.Empty(ControloDefinicoesValidator.Validate(new ClearMachineAssignmentCommand("C2", 1)));
-    }
-
-    /// <summary>
     /// SET1 (AC-F1) — the PDF base directory is an absolute server-host path: a blank value is
     /// <c>DIRECTORY_REQUIRED</c>, a relative value is <c>DIRECTORY_INVALID</c>, and a rooted value
     /// validates clean (only absolute paths reach the accessibility probe).
@@ -309,47 +241,11 @@ public sealed class ControloDefinicoesValidatorTests
 
     private static ControloDefinicoesService BuildSettingsService(IEmailListRepository emailLists) =>
         new(
-            new EmptyRepairerRepository(),
-            new EmptyAssignmentRepository(),
             new EmptyPdfDirectoryRepository(),
             emailLists,
             new EmptyEmailTemplateRepository(),
             new EmptyGlassDensityRepository(),
             new OkDirectoryProbe());
-
-    /// <summary>A repairer repository that is never consulted by these proofs.</summary>
-    private sealed class EmptyRepairerRepository : IRepairerRepository
-    {
-        public Task<Repairer?> GetByIdAsync(Guid repairerId, CancellationToken cancellationToken) =>
-            Task.FromResult<Repairer?>(null);
-
-        public Task<IReadOnlyList<Repairer>> ListAsync(CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<Repairer>>([]);
-
-        public Task<Repairer> CreatedAsync(Repairer repairer, CancellationToken cancellationToken) =>
-            Task.FromResult(repairer);
-
-        public Task<Repairer> RenamedAsync(Repairer repairer, CancellationToken cancellationToken) =>
-            Task.FromResult(repairer);
-    }
-
-    /// <summary>An assignment repository that is never consulted by these proofs.</summary>
-    private sealed class EmptyAssignmentRepository : IMachineRepairerAssignmentRepository
-    {
-        public Task<MachineRepairerAssignment?> GetByMachineAsync(string machine, CancellationToken cancellationToken) =>
-            Task.FromResult<MachineRepairerAssignment?>(null);
-
-        public Task<IReadOnlyList<MachineRepairerAssignment>> ListAsync(CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<MachineRepairerAssignment>>([]);
-
-        public Task<MachineRepairerAssignment> SetAsync(
-            MachineRepairerAssignment assignment,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(assignment);
-
-        public Task ClearedAsync(string machine, int expectedVersion, CancellationToken cancellationToken) =>
-            Task.CompletedTask;
-    }
 
     /// <summary>A PDF-directory settings repository that is never consulted by these proofs.</summary>
     private sealed class EmptyPdfDirectoryRepository : IPdfDirectorySettingsRepository

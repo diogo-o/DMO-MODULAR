@@ -1,19 +1,25 @@
 using DMO.Application.Persistence;
 using DMO.Application.Repositories;
 using DMO.Domain.Controlo;
-using DMO.Domain.Tools;
 
 namespace DMO.Application.ControloCreate;
 
 /// <summary>
 /// The <c>Controlo_Create → Definições</c> settings service: the operational configuration
-/// areas (repairers, machine assignments, PDF directory, email lists, email templates and the
-/// current operational glass densities per processo).
+/// areas (PDF directory, email lists, email templates and the current operational glass
+/// densities per processo).
 /// </summary>
 /// <remarks>
-/// Authority: P2-T05 contract §9–§14, §20.3; post-closure glass-density correction contract
+/// Authority: P2-T05 contract §12–§14, §20.3; post-closure glass-density correction contract
 /// §5.3 (the ONLY delta from the closed baseline: the processo→glass-density operational values
 /// live here, routes 18/19; every other Definições decision stays closed).
+/// <para>
+/// <b>Superseded (Owner clarification P2-T07 §34.3 / P2-T05 §31.3):</b> the repairer register and
+/// the machine → repairer assignments are owned by <c>Boquilhas > Definições</c>
+/// (<c>IBoquilhasDefinicoesService</c> over the same shared <c>repairers</c> /
+/// <c>machine_repairer_assignments</c> tables and repositories). The residual Controlo repairer
+/// members were removed (F-06); the shared error tokens remain in
+/// <see cref="ControloDefinicoesValidationErrors"/> because the Boquilhas surface consumes them.</para>
 /// <para>
 /// Settings are site-wide configuration data (Q-SITE): no per-user dimension exists; no setting
 /// value ever becomes a canonical identity, a join key, a document identity or production truth
@@ -31,8 +37,6 @@ namespace DMO.Application.ControloCreate;
 /// </remarks>
 public sealed class ControloDefinicoesService : IControloDefinicoesService
 {
-    private readonly IRepairerRepository _repairers;
-    private readonly IMachineRepairerAssignmentRepository _assignments;
     private readonly IPdfDirectorySettingsRepository _pdfDirectory;
     private readonly IEmailListRepository _emailLists;
     private readonly IEmailTemplateRepository _emailTemplates;
@@ -41,204 +45,22 @@ public sealed class ControloDefinicoesService : IControloDefinicoesService
 
     /// <summary>Creates the settings service over its repositories and the directory probe.</summary>
     public ControloDefinicoesService(
-        IRepairerRepository repairers,
-        IMachineRepairerAssignmentRepository assignments,
         IPdfDirectorySettingsRepository pdfDirectory,
         IEmailListRepository emailLists,
         IEmailTemplateRepository emailTemplates,
         IGlassDensitySettingsRepository glassDensities,
         IPdfDirectoryProbe directoryProbe)
     {
-        ArgumentNullException.ThrowIfNull(repairers);
-        ArgumentNullException.ThrowIfNull(assignments);
         ArgumentNullException.ThrowIfNull(pdfDirectory);
         ArgumentNullException.ThrowIfNull(emailLists);
         ArgumentNullException.ThrowIfNull(emailTemplates);
         ArgumentNullException.ThrowIfNull(glassDensities);
         ArgumentNullException.ThrowIfNull(directoryProbe);
-        _repairers = repairers;
-        _assignments = assignments;
         _pdfDirectory = pdfDirectory;
         _emailLists = emailLists;
         _emailTemplates = emailTemplates;
         _glassDensities = glassDensities;
         _directoryProbe = directoryProbe;
-    }
-
-    // ---------------------------------------------------------------------------------------------
-    // Repairers (§10)
-    // ---------------------------------------------------------------------------------------------
-
-    /// <inheritdoc />
-    public async Task<SettingsResult> ListRepairersAsync(CancellationToken cancellationToken) =>
-        new SettingsResult.RepairersFound(await _repairers.ListAsync(cancellationToken));
-
-    /// <inheritdoc />
-    public async Task<SettingsResult> CreateRepairerAsync(
-        CreateRepairerCommand command,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(command);
-
-        var errors = ControloDefinicoesValidator.Validate(command);
-        if (errors.Count > 0)
-        {
-            return new SettingsResult.ValidationFailed(errors);
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var repairer = new Repairer(RepairerId.New(), command.Name.Trim(), Version: 1, now, now);
-
-        try
-        {
-            var created = await _repairers.CreatedAsync(repairer, cancellationToken);
-
-            return new SettingsResult.RepairerCreated(created.RepairerId.Value, created.Version);
-        }
-        catch (ControloPersistenceException exception)
-        {
-            return Map(exception);
-        }
-    }
-
-    /// <inheritdoc />
-    public async Task<SettingsResult> RenameRepairerAsync(
-        RenameRepairerCommand command,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(command);
-
-        var errors = ControloDefinicoesValidator.Validate(command);
-        if (errors.Count > 0)
-        {
-            return new SettingsResult.ValidationFailed(errors);
-        }
-
-        var persisted = await _repairers.GetByIdAsync(command.RepairerId, cancellationToken);
-        if (persisted is null)
-        {
-            return new SettingsResult.NotFound(command.RepairerId);
-        }
-
-        var stale = AssertVersion(persisted.Version, command.ExpectedVersion, "repairer");
-        if (stale is not null)
-        {
-            return stale;
-        }
-
-        var renamed = persisted with { Name = command.Name.Trim() };
-
-        try
-        {
-            var saved = await _repairers.RenamedAsync(renamed, cancellationToken);
-
-            // The SAME repairer_id is retained across the rename (AC-D2).
-            return new SettingsResult.RepairerRenamed(saved.RepairerId.Value, saved.Version);
-        }
-        catch (ConcurrencyConflictException exception)
-        {
-            return Refuse(SettingsRefusalReason.StaleVersion, exception.Message);
-        }
-        catch (ControloPersistenceException exception)
-        {
-            return Map(exception);
-        }
-    }
-
-    // ---------------------------------------------------------------------------------------------
-    // Machine assignments (§11)
-    // ---------------------------------------------------------------------------------------------
-
-    /// <inheritdoc />
-    public async Task<SettingsResult> ListMachineAssignmentsAsync(CancellationToken cancellationToken) =>
-        new SettingsResult.AssignmentsFound(await _assignments.ListAsync(cancellationToken));
-
-    /// <inheritdoc />
-    public async Task<SettingsResult> SetMachineAssignmentAsync(
-        SetMachineAssignmentCommand command,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(command);
-
-        var errors = ControloDefinicoesValidator.Validate(command);
-        if (errors.Count > 0)
-        {
-            return new SettingsResult.ValidationFailed(errors);
-        }
-
-        var machine = command.Machine.Trim();
-
-        // A null repairer id is the explicit clear operation (row removal).
-        if (command.RepairerId is not { } repairerId)
-        {
-            try
-            {
-                await _assignments.ClearedAsync(machine, command.ExpectedVersion ?? 1, cancellationToken);
-
-                return new SettingsResult.AssignmentCleared(machine);
-            }
-            catch (ConcurrencyConflictException exception)
-            {
-                return Refuse(SettingsRefusalReason.StaleVersion, exception.Message);
-            }
-        }
-
-        var repairer = await _repairers.GetByIdAsync(repairerId, cancellationToken);
-        if (repairer is null)
-        {
-            return new SettingsResult.ValidationFailed([ControloDefinicoesValidationErrors.RepairerNotFound]);
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var assignment = new MachineRepairerAssignment(
-            Guid.NewGuid(),
-            MachineCode.From(machine),
-            RepairerId.From(repairerId),
-            command.ExpectedVersion ?? 1,
-            now,
-            now);
-
-        try
-        {
-            var saved = await _assignments.SetAsync(assignment, cancellationToken);
-
-            return new SettingsResult.AssignmentSet(saved.Machine.Value, saved.Version);
-        }
-        catch (ConcurrencyConflictException exception)
-        {
-            return Refuse(SettingsRefusalReason.StaleVersion, exception.Message);
-        }
-        catch (ControloPersistenceException exception)
-        {
-            return Map(exception);
-        }
-    }
-
-    /// <inheritdoc />
-    public async Task<SettingsResult> ClearMachineAssignmentAsync(
-        ClearMachineAssignmentCommand command,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(command);
-
-        var errors = ControloDefinicoesValidator.Validate(command);
-        if (errors.Count > 0)
-        {
-            return new SettingsResult.ValidationFailed(errors);
-        }
-
-        var machine = command.Machine.Trim();
-
-        try
-        {
-            await _assignments.ClearedAsync(machine, command.ExpectedVersion, cancellationToken);
-
-            return new SettingsResult.AssignmentCleared(machine);
-        }
-        catch (ConcurrencyConflictException exception)
-        {
-            return Refuse(SettingsRefusalReason.StaleVersion, exception.Message);
-        }
     }
 
     // ---------------------------------------------------------------------------------------------

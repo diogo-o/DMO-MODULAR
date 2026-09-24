@@ -116,8 +116,6 @@ public sealed class GlassDensitySettingsRepositoryIntegrationTests
         try
         {
             var service = new ControloDefinicoesService(
-                new RepairerRepository(context),
-                new MachineRepairerAssignmentRepository(context),
                 new PdfDirectorySettingsRepository(context),
                 new EmailListRepository(context),
                 new EmailTemplateRepository(context),

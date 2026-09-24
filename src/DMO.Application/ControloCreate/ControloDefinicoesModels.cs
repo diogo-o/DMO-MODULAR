@@ -6,35 +6,17 @@ namespace DMO.Application.ControloCreate;
 /// The command carriers and closed result set of <c>Controlo_Create → Definições</c>.
 /// </summary>
 /// <remarks>
-/// Authority: P2-T05 contract §9–§14, §20.3 and §26.1. Every settings write is version-guarded
+/// Authority: P2-T05 contract §12–§14, §20.3 and §26.1. Every settings write is version-guarded
 /// (Q-CONC default) and every setting is site-wide configuration, never a per-user dimension
 /// (SET10/AC-F8). Settings are configuration data, not domain records: no setting value ever
 /// becomes a canonical identity, a join key, a document identity or production truth (§9.1).
+/// <para>
+/// <b>Superseded (Owner clarification P2-T07 §34.3 / P2-T05 §31.3):</b> the repairer register and
+/// the machine → repairer assignments moved to <c>Boquilhas > Definições</c>; the Controlo
+/// repairer/machine-assignment command and result carriers were removed (F-06). The shared error
+/// tokens stay in <see cref="ControloDefinicoesValidationErrors"/> because the Boquilhas surface
+/// consumes them.</para>
 /// </remarks>
-
-// ---------------------------------------------------------------------------------------------
-// Repairers (§10)
-// ---------------------------------------------------------------------------------------------
-
-/// <summary>Adds a repairer: the only required business data is the name (§10.1).</summary>
-public sealed record CreateRepairerCommand(string Name);
-
-/// <summary>Renames a repairer on the same <c>repairer_id</c>, version-guarded (§10.2, AC-D2).</summary>
-public sealed record RenameRepairerCommand(Guid RepairerId, int ExpectedVersion, string Name);
-
-// ---------------------------------------------------------------------------------------------
-// Machine assignments (§11)
-// ---------------------------------------------------------------------------------------------
-
-/// <summary>
-/// Sets/changes/clears the independent assignment of ONE machine: a null <see cref="RepairerId"/>
-/// clears the assignment (explicit operator action); a value upserts the row. The version is the
-/// observed assignment version, or none on the first set (§19.2).
-/// </summary>
-public sealed record SetMachineAssignmentCommand(string Machine, Guid? RepairerId, int? ExpectedVersion);
-
-/// <summary>Clears the assignment of one machine (row removed; other machines untouched — AC-E2).</summary>
-public sealed record ClearMachineAssignmentCommand(string Machine, int ExpectedVersion);
 
 // ---------------------------------------------------------------------------------------------
 // PDF directory (§12)
@@ -161,24 +143,6 @@ public abstract record SettingsResult
     private SettingsResult()
     {
     }
-
-    /// <summary>The repairer register.</summary>
-    public sealed record RepairersFound(IReadOnlyList<Repairer> Repairers) : SettingsResult;
-
-    /// <summary>A repairer was added; the backend allocated <c>repairer_id</c>.</summary>
-    public sealed record RepairerCreated(Guid RepairerId, int Version) : SettingsResult;
-
-    /// <summary>The same <c>repairer_id</c> was renamed; the version incremented.</summary>
-    public sealed record RepairerRenamed(Guid RepairerId, int Version) : SettingsResult;
-
-    /// <summary>Every current machine assignment (absent row = no repairer assigned).</summary>
-    public sealed record AssignmentsFound(IReadOnlyList<MachineRepairerAssignment> Assignments) : SettingsResult;
-
-    /// <summary>The machine's independent assignment was set/changed; version incremented.</summary>
-    public sealed record AssignmentSet(string Machine, int Version) : SettingsResult;
-
-    /// <summary>The machine's assignment was cleared (row removed).</summary>
-    public sealed record AssignmentCleared(string Machine) : SettingsResult;
 
     /// <summary>The current PDF-directory setting, or the explicit <c>not-configured</c> state.</summary>
     public sealed record PdfDirectoryFound(PdfDirectoryView? View) : SettingsResult;

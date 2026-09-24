@@ -4,8 +4,16 @@ namespace DMO.Application.ControloCreate;
 /// The single <c>Controlo_Create → Definições</c> settings service contract.
 /// </summary>
 /// <remarks>
-/// Authority: P2-T05 contract §9–§14 and §20.3; post-closure glass-density correction
+/// Authority: P2-T05 contract §12–§14 and §20.3; post-closure glass-density correction
 /// contract §5.3 (the current operational glass density per processo, routes 18/19).
+/// <para>
+/// <b>Superseded (Owner clarification P2-T07 §34.3 / P2-T05 §31.3):</b> the repairer register and
+/// the machine → repairer assignments moved to <c>Boquilhas > Definições</c>; the residual
+/// Controlo repairer members were removed (F-06). The shared error tokens
+/// <see cref="ControloDefinicoesValidationErrors.NameRequired"/>,
+/// <see cref="ControloDefinicoesValidationErrors.RepairerNotFound"/> and
+/// <see cref="ControloDefinicoesValidationErrors.MachineUnknown"/> are still consumed by the
+/// Boquilhas surface and remain here.</para>
 /// <para>
 /// All areas are site-wide database configuration owned by Controlo_Create (Q-SITE); no
 /// per-user dimension exists. No setting value ever becomes a canonical identity, a join key, a
@@ -15,26 +23,6 @@ namespace DMO.Application.ControloCreate;
 /// </remarks>
 public interface IControloDefinicoesService
 {
-    // Repairers (§10) — name is the only required data.
-    /// <summary>Lists the repairer register (deterministic name order).</summary>
-    Task<SettingsResult> ListRepairersAsync(CancellationToken cancellationToken);
-
-    /// <summary>Adds a repairer (name only).</summary>
-    Task<SettingsResult> CreateRepairerAsync(CreateRepairerCommand command, CancellationToken cancellationToken);
-
-    /// <summary>Renames a repairer on the same <c>repairer_id</c>, version-guarded.</summary>
-    Task<SettingsResult> RenameRepairerAsync(RenameRepairerCommand command, CancellationToken cancellationToken);
-
-    // Machine assignments (§11) — six independent machines, no grouping.
-    /// <summary>Lists the current assignment of every machine (absent row = none).</summary>
-    Task<SettingsResult> ListMachineAssignmentsAsync(CancellationToken cancellationToken);
-
-    /// <summary>Sets/changes/clears ONE machine's independent assignment.</summary>
-    Task<SettingsResult> SetMachineAssignmentAsync(SetMachineAssignmentCommand command, CancellationToken cancellationToken);
-
-    /// <summary>Clears ONE machine's assignment (other machines untouched).</summary>
-    Task<SettingsResult> ClearMachineAssignmentAsync(ClearMachineAssignmentCommand command, CancellationToken cancellationToken);
-
     // PDF directory (§12) — server-host base-directory configuration.
     /// <summary>Reads the configured base directory, or the explicit <c>not-configured</c> state.</summary>
     Task<SettingsResult> GetPdfDirectoryAsync(CancellationToken cancellationToken);

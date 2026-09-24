@@ -1,5 +1,4 @@
 using DMO.Application.Tools;
-using DMO.Domain.Tools;
 
 namespace DMO.Application.ControloCreate;
 
@@ -7,6 +6,13 @@ namespace DMO.Application.ControloCreate;
 /// The exact machine-readable validation error codes of <c>Controlo_Create → Definições</c>
 /// (closed set, §26.2).
 /// </summary>
+/// <remarks>
+/// <b>Shared tokens (preserved):</b> <see cref="NameRequired"/>, <see cref="RepairerNotFound"/>
+/// and <see cref="MachineUnknown"/> are the contracted transport vocabulary of the repairer
+/// family, which moved to <c>Boquilhas > Definições</c> (Owner clarification P2-T07 §34.3 /
+/// P2-T05 §31.3); <c>BoquilhasDefinicoesService</c> / <c>BoquilhasDefinicoesEndpoints</c>
+/// consume them, so they stay here (F-06 cleanup keeps them; no extraction chosen).
+/// </remarks>
 public static class ControloDefinicoesValidationErrors
 {
     /// <summary>The repairer name was not supplied (blank/whitespace).</summary>
@@ -63,76 +69,10 @@ public static class ControloDefinicoesValidationErrors
 
 /// <summary>
 /// Pure static Definições validator: it runs before any write and returns the exact contracted
-/// codes (§10.4, §12.2, §13.2, §14.2).
+/// codes (§12.2, §13.2, §14.2, correction §5.3).
 /// </summary>
 public static class ControloDefinicoesValidator
 {
-    /// <summary>Validates the add-repairer command (name is the only required data).</summary>
-    public static IReadOnlyList<string> Validate(CreateRepairerCommand command)
-    {
-        ArgumentNullException.ThrowIfNull(command);
-
-        return string.IsNullOrWhiteSpace(command.Name)
-            ? [ControloDefinicoesValidationErrors.NameRequired]
-            : [];
-    }
-
-    /// <summary>Validates the rename-repairer command.</summary>
-    public static IReadOnlyList<string> Validate(RenameRepairerCommand command)
-    {
-        ArgumentNullException.ThrowIfNull(command);
-
-        var errors = new List<string>();
-
-        if (command.RepairerId == Guid.Empty)
-        {
-            errors.Add(ControloDefinicoesValidationErrors.NameRequired);
-        }
-
-        if (string.IsNullOrWhiteSpace(command.Name))
-        {
-            errors.Add(ControloDefinicoesValidationErrors.NameRequired);
-        }
-
-        return errors;
-    }
-
-    /// <summary>Validates a one-machine assignment set/change/clear command.</summary>
-    public static IReadOnlyList<string> Validate(SetMachineAssignmentCommand command)
-    {
-        ArgumentNullException.ThrowIfNull(command);
-
-        var errors = new List<string>();
-
-        if (string.IsNullOrWhiteSpace(command.Machine) || !MachineCode.IsKnown(command.Machine.Trim()))
-        {
-            errors.Add(ControloDefinicoesValidationErrors.MachineUnknown);
-        }
-
-        // A null repairer id is the explicit clear; an EMPTY id is a resolution failure.
-        if (command.RepairerId == Guid.Empty)
-        {
-            errors.Add(ControloDefinicoesValidationErrors.RepairerNotFound);
-        }
-
-        return errors;
-    }
-
-    /// <summary>Validates a one-machine assignment clear command.</summary>
-    public static IReadOnlyList<string> Validate(ClearMachineAssignmentCommand command)
-    {
-        ArgumentNullException.ThrowIfNull(command);
-
-        var errors = new List<string>();
-
-        if (string.IsNullOrWhiteSpace(command.Machine) || !MachineCode.IsKnown(command.Machine.Trim()))
-        {
-            errors.Add(ControloDefinicoesValidationErrors.MachineUnknown);
-        }
-
-        return errors;
-    }
-
     /// <summary>Validates the PDF-directory configure/change command.</summary>
     public static IReadOnlyList<string> Validate(SetPdfDirectoryCommand command)
     {
