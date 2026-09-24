@@ -3,6 +3,7 @@ using DMO.Application.Authentication;
 using DMO.Application.Boquilhas;
 using DMO.Application.ControloApprove;
 using DMO.Application.ControloCreate;
+using DMO.Application.Documents;
 using DMO.Application.JobOn;
 using DMO.Application.Migrations;
 using DMO.Application.Session;
@@ -158,6 +159,15 @@ try
     // registers availability (contract §13.3).
     builder.Services.AddScoped<IControloApproveService, ControloApproveService>();
 
+    // ---- P2-T08 documents: Peso PDF generation/storage (this slice) ---------------------------
+    // The generation service composes the SHARED P2-T05 Peso read (the same read model Create and
+    // Approve render), the configured pdf_directory_settings and the server-host workspace; the
+    // renderer and the file store are stateless adapters. No policy, no availability entry and no
+    // destination route is added here: the route is gated by the owning Controlo Approve policy.
+    builder.Services.AddScoped<IPesoPdfService, PesoPdfService>();
+    builder.Services.AddSingleton<IPesoPdfRenderer, PesoPdfRenderer>();
+    builder.Services.AddSingleton<IPesoPdfFileStore, ServerHostPesoPdfFileStore>();
+
     // ---- P2-T07 Boquilhas: Registo + Novo + Histórico + Definições ----------------------------
     // The aggregate/movement service composing the closed P2-T04/P2-T05 application contracts
     // (Tool/Job On/repairer/assignments) and the Boquilhas repository; the Definições service
@@ -223,6 +233,7 @@ app.MapFerramentasEndpoints();
 app.MapControloCreateEndpoints();
 app.MapControloDefinicoesEndpoints();
 app.MapControloApproveEndpoints();
+app.MapDocumentsEndpoints();
 app.MapBoquilhasEndpoints();
 app.MapBoquilhasDefinicoesEndpoints();
 

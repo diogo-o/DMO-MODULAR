@@ -11,7 +11,11 @@
 //   - the reason input is opened by Rejeitar/Reabrir and no decision is sent without a
 //     non-blank reason (backend authoritative: REJECT_REASON_REQUIRED/REOPEN_REASON_REQUIRED);
 //   - approve is an explicit confirmed action (one request only after confirmation);
-//   - open arbitration is resolved through the page-owned route map (no per-row action buttons).
+//   - open arbitration is resolved through the page-owned route map (no per-row action buttons);
+//   - P2-T08 Peso PDF: one request on the canonical peso_id with NO body, pending state while in
+//     flight (duplicate invocation prevented, accessible name preserved), the deterministic output
+//     result shown (generated / already-available; never rewritten) and typed refusals into the
+//     page-owned errors presentation — generation never reloads the page.
 //
 // Usage: node dmo-controlo-approve-adapter.behavior.mjs <path-to-dmo-controlo-approve.js>
 'use strict';
@@ -147,6 +151,18 @@ function makeRoot() {
     button.textContent = key;
     section.appendChild(button);
   });
+
+  // The P2-T08 Peso PDF action surface (rendered on decided records by the real page).
+  const pdfButton = el('button');
+  pdfButton.attrs['data-dmo-peso-pdf'] = 'true';
+  pdfButton.attrs['data-dmo-peso-pdf-pending'] = 'A gerar…';
+  pdfButton.textContent = 'Gerar PDF do Peso';
+  section.appendChild(pdfButton);
+
+  const pdfOutcome = el('div');
+  pdfOutcome.attrs['data-dmo-peso-pdf-outcome'] = 'true';
+  pdfOutcome.hidden = true;
+  section.appendChild(pdfOutcome);
 
   // A decision table + route map for the open-arbitration proof (inside the surface root, as
   // rendered by the real pages).
@@ -370,6 +386,106 @@ function loadAdapter(root, fetchImpl, confirmImpl) {
     assert('open-route',
       win.location.href === '/controlo/approve?pesoId=22222222-2222-2222-2222-222222222222',
       `open resolves the EXACT record route, got '${win.location.href}'`);
+  }
+
+  // ------------------------------------------------------------------ Peso PDF (P2-T08): one request on the peso_id, NO body, pending
+  // state while in flight, the deterministic output result shown (generated /
+  // already-available), refusals into the page-owned errors presentation,
+  // duplicate invocation prevented while pending.
+  {
+    const root = makeRoot();
+    const requests = [];
+    const win = loadAdapter(
+      root,
+      async (url, options) => {
+        requests.push({ url: String(url), body: options && options.body });
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status: 'generated',
+            pesoId: '11111111-1111-1111-1111-111111111111',
+            version: 2,
+            fileName: 'Peso_ref-X_B1.pdf',
+            relativePath: 'ref-X/prod-1/Peso_ref-X_B1.pdf',
+            bytes: 42,
+          }),
+        };
+      },
+      null,
+    );
+
+    const button = root.querySelectorAll('[data-dmo-peso-pdf]')[0];
+    const outcome = root.querySelectorAll('[data-dmo-peso-pdf-outcome]')[0];
+
+    click(button);
+    // Pending state while the request is in flight: duplicate invocation prevented, accessible
+    // name preserved.
+    assert('peso-pdf-pending', button.disabled === true && button.textContent === 'A gerar…',
+      `the PDF button is pending while the request is in flight (disabled='${button.disabled}', text='${button.textContent}')`);
+    await flush();
+
+    assert('peso-pdf-request', requests.length === 1 && requests[0].url.endsWith('/peso-pdf'),
+      `exactly ONE peso-pdf request to the owning-workflow route, got ${requests.length}`);
+    assert('peso-pdf-no-body', requests.length === 1 && requests[0].body === undefined,
+      'the peso-pdf request carries NO body (only the canonical peso_id path identity)');
+    assert('peso-pdf-restored', button.disabled === false && button.textContent === 'Gerar PDF do Peso',
+      'the button is restored after the response');
+    assert('peso-pdf-outcome', outcome.hidden === false
+      && textOf(outcome).indexOf('PDF gerado: Peso_ref-X_B1.pdf') !== -1,
+      'the generated output result (file name + relative target) is shown');
+    assert('peso-pdf-no-reload', win.location.reloads === 0, 'generation does NOT reload the page');
+  }
+
+  // already-available: the same deterministic target is reported, never rewritten.
+  {
+    const root = makeRoot();
+    const win = loadAdapter(
+      root,
+      async (url) => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'already-available',
+          pesoId: '11111111-1111-1111-1111-111111111111',
+          version: 2,
+          fileName: 'Peso_ref-X_B1.pdf',
+          relativePath: 'ref-X/prod-1/Peso_ref-X_B1.pdf',
+          bytes: 42,
+        }),
+      }),
+      null,
+    );
+
+    const button = root.querySelectorAll('[data-dmo-peso-pdf]')[0];
+    const outcome = root.querySelectorAll('[data-dmo-peso-pdf-outcome]')[0];
+
+    click(button);
+    await flush();
+    assert('peso-pdf-available', textOf(outcome).indexOf('PDF já disponível: Peso_ref-X_B1.pdf') !== -1,
+      'an existing deterministic target is reported as already-available');
+    assert('peso-pdf-available-no-reload', win.location.reloads === 0, 'no reload on already-available');
+  }
+
+  // A typed refusal (not-decided) enters the errors presentation and restores the button.
+  {
+    const root = makeRoot();
+    const response = {
+      ok: false,
+      status: 409,
+      json: async () => ({ reason: 'not-decided', message: 'Este Peso ainda não foi decidido.' }),
+    };
+    const win = loadAdapter(root, async () => response, null);
+
+    const button = root.querySelectorAll('[data-dmo-peso-pdf]')[0];
+    const stateNode = root.querySelectorAll('[data-dmo-approve-state]')[0];
+
+    click(button);
+    await flush();
+    assert('peso-pdf-refused', textOf(stateNode).indexOf('not-decided') !== -1,
+      'a typed refusal enters the page-owned errors presentation');
+    assert('peso-pdf-refused-restored', button.disabled === false, 'the button is restored after the refusal');
+    assert('peso-pdf-refused-no-reload', win.location.reloads === 0, 'no reload on refusal');
   }
 
   // ------------------------------------------------------------------ summary

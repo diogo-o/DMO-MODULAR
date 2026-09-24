@@ -410,6 +410,60 @@ public sealed class P2T06RenderingTests
         return count;
     }
 
+    /// <summary>
+    /// P2-T08 documents slice (render part) — the Aprovar review sheet offers the Peso PDF
+    /// generation action ONLY on decided, production-bound records: an approved record renders the
+    /// <c>Gerar PDF do Peso</c> action with its outcome region; a submitted-but-undecided record
+    /// renders none (documents become available after the decision; Create's R8 seam is unchanged).
+    /// </summary>
+    [Fact]
+    public async Task PD1_TheAprovarSheetOffersThePesoPdfActionOnlyOnDecidedRecords()
+    {
+        // Approved + production-bound: the action IS offered.
+        var approvedComposition = new P2T06TestComposition();
+        var approvedId = await SeedSubmittedPesoAsync(approvedComposition, "PD1A");
+        var approvedPeso = (await approvedComposition.Pesos.GetByIdAsync(approvedId, CancellationToken.None))!;
+        await approvedComposition.Review.DecisionAsync(
+            new DMO.Domain.Controlo.PesoReviewDecision(
+                DMO.Domain.Controlo.PesoReviewDecisionId.New(),
+                DMO.Domain.Controlo.PesoId.From(approvedId),
+                DMO.Domain.Controlo.PesoReviewDecisionKind.Aprovado,
+                P2T06TestHost.ActorUserId,
+                DateTimeOffset.UtcNow,
+                Reason: null,
+                DMO.Domain.Controlo.PesoStatus.Pendente,
+                approvedPeso.Version,
+                DateTimeOffset.UtcNow),
+            expectedPesoVersion: approvedPeso.Version,
+            CancellationToken.None);
+
+        using (var factory = P2T06TestHost.ForUser(P2T06TestHost.AllGranted(), approvedComposition))
+        using (var client = factory.CreateClient())
+        using (var response = await P2T06TestHost.GetAsync(client, $"{ApprovePath}?pesoId={approvedId}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var html = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains("data-dmo-peso-pdf=\"true\"", html, StringComparison.Ordinal);
+            Assert.Contains("data-dmo-peso-pdf-outcome=\"true\"", html, StringComparison.Ordinal);
+            Assert.Contains("Gerar PDF do Peso", html, StringComparison.Ordinal);
+        }
+
+        // Submitted but UNDECIDED: the action is NOT offered (awaiting the decision).
+        var undecidedComposition = new P2T06TestComposition();
+        var undecidedId = await SeedSubmittedPesoAsync(undecidedComposition, "PD1B");
+
+        using (var factory = P2T06TestHost.ForUser(P2T06TestHost.AllGranted(), undecidedComposition))
+        using (var client = factory.CreateClient())
+        using (var response = await P2T06TestHost.GetAsync(client, $"{ApprovePath}?pesoId={undecidedId}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var html = await response.Content.ReadAsStringAsync();
+
+            Assert.DoesNotContain("data-dmo-peso-pdf", html, StringComparison.Ordinal);
+        }
+    }
+
     private static void AssertInOrder(string html, params string[] markers)
     {
         var index = -1;

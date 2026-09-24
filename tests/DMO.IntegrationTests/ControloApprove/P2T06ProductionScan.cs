@@ -107,13 +107,29 @@ internal static class P2T06ProductionScan
 
     // ================= boundary vocabularies ===============================================
 
-    /// <summary>No P2-T08 execution tokens (BND-B2): PDF/file/email/document mechanics.</summary>
-    public static IReadOnlyList<string> P2T08ExecutionTokens { get; } =
+    /// <summary>
+    /// P2-T08 executions still FORBIDDEN everywhere in the P2-T06 area (BND-B2, updated by the
+    /// documents slice): email sending/routing, attachments, document identity, regeneration and
+    /// raw file-stream mechanics. (The document-TYPE vocabulary 'peso'/'pegamentos'/'resumo' is
+    /// closed P2-T05 migration content — vocabulary, not execution — and is not scanned here.)
+    /// </summary>
+    public static IReadOnlyList<string> P2T08ForbiddenExecutionTokens { get; } =
     [
-        "Pdf", "PDF", "PdfCreator", "StreamWriter", "File.WriteAll",
         "SmtpClient", "MailMessage", "SendMail", "SendEmail", "EmailSender",
         "attachment", "Attachment", "DocumentId", "document_id", "sent_at",
         "enviado", "EnviarDocumento", "Regenerate", "Regenerar",
+        "StreamWriter", "File.WriteAll", "PdfCreator",
+    ];
+
+    /// <summary>
+    /// The Peso PDF execution vocabulary the documents slice ADDED (sanctioned ONLY in the
+    /// documents surface: <c>src/DMO.Application/Documents</c>, <c>DocumentsEndpoints.cs</c>, the
+    /// composition-root wiring in <c>Program.cs</c> and the page-owned action hooks on the Approve
+    /// page/adapter). It must stay out of every other P2-T06 source (BND2).
+    /// </summary>
+    public static IReadOnlyList<string> PesoPdfExecutionTokens { get; } =
+    [
+        "PesoPdf", "peso-pdf", "CanGeneratePesoPdf",
     ];
 
     /// <summary>No P2-T07 Boquilhas tokens (BND-B3).</summary>

@@ -358,6 +358,12 @@ internal static class P2T05ProductionScan
         "src/DMO.Web/Endpoints/BoquilhasDefinicoesEndpoints.cs",
         "src/DMO.Web/wwwroot/css/dmo-boquilhas.css",
         "src/DMO.Web/wwwroot/js/dmo-boquilhas.js",
+        // ---- P2-T08 documents slice (disclosed extension): the Documents area consumes the P2-T05
+        // Peso read model and the operator-configured pdf_directory_settings by contract and owns
+        // generation/storage, so its OWN paths are an accepted extension of the P2-T05 owned
+        // surface (the documents slice pins its own boundary/regression rows).
+        "src/DMO.Application/Documents/",
+        "src/DMO.Web/Endpoints/DocumentsEndpoints.cs",
     ];
 
     /// <summary>
