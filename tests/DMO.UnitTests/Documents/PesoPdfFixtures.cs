@@ -40,7 +40,8 @@ internal static class PesoPdfFixtures
             Production: new PesoProductionProjection(
                 Reference: "REF-X",
                 ProductionNumber: "2026-001",
-                Machine: "B1"),
+                Machine: "B1",
+                ProductionDate: new DateOnly(2026, 9, 19)),
             CreatedByUserId: new Guid("44444444-4444-4444-4444-444444444444"),
             CreatedAt,
             SubmittedByUserId: new Guid("55555555-5555-5555-5555-555555555555"),

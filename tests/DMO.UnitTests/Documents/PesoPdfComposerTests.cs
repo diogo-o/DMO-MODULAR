@@ -26,8 +26,8 @@ public sealed class PesoPdfComposerTests
         Assert.Equal("2026-001", document.ProductionNumber);
         Assert.Equal("B1", document.Machine);
 
-        // Data: the submission date (the record's completion date; present on decided records).
-        Assert.Equal("2026-09-21", document.Date);
+        // Data: the Job On PRODUCTION date — the control date of the record (never SubmittedAt).
+        Assert.Equal("2026-09-19", document.Date);
 
         // CM + Processo + Lote come from the frozen context projection; the lot is the plain
         // frozen value — never prefixed with "L" and never relabelled.
@@ -78,6 +78,26 @@ public sealed class PesoPdfComposerTests
             PesoPdfFixtures.DecidedSheet(status: PesoStatus.NaoAprovado));
 
         Assert.Equal("Não aprovado", document.EstadoLabel);
+    }
+
+    [Fact]
+    public void Compose_NeverSubstitutesSubmittedAtForTheProductionDate()
+    {
+        // A decided sheet WITHOUT a production date: Data is the truthful "—", never a fallback
+        // to SubmittedAt/CreatedAt (SubmittedAt stays submission/audit information only).
+        var sheet = PesoPdfFixtures.DecidedSheet() with
+        {
+            Production = PesoPdfFixtures.DecidedSheet().Production! with
+            {
+                ProductionDate = null,
+            },
+        };
+
+        var document = PesoPdfComposer.Compose(sheet);
+
+        Assert.Equal("—", document.Date);
+        Assert.NotNull(sheet.SubmittedAt); // the audit fact exists — it is just not the Data
+        Assert.NotEqual(sheet.SubmittedAt!.Value.ToString("yyyy-MM-dd"), document.Date);
     }
 
     [Fact]

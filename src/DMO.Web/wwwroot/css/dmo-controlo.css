@@ -290,3 +290,31 @@
   cursor: pointer;
   text-decoration: underline dotted;
 }
+/* P2-T08 Peso PDF generation action (Create owns the operational document work after the
+   decision): an ENABLED document action on decided, production-bound drafts. */
+.dmo-controlo__pdf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.dmo-controlo__pdf [data-dmo-peso-pdf] {
+  cursor: pointer;
+}
+
+.dmo-controlo__pdf [data-dmo-peso-pdf]:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.dmo-controlo__pdf-hint {
+  color: var(--dmo-color-text-secondary, #444);
+  font-size: var(--dmo-font-size-sm, 0.8125rem);
+}
+
+.dmo-controlo__pdf-outcome p {
+  margin: 0;
+  color: var(--dmo-color-text-secondary, #444);
+  font-size: var(--dmo-font-size-sm, 0.8125rem);
+}

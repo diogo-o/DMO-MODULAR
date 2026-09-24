@@ -189,32 +189,6 @@
   font-size: var(--dmo-font-size-sm, 0.8125rem);
 }
 
-/* P2-T08 Peso PDF generation: an ENABLED document action on decided records (the base
-   .dmo-approve__send look with the disabled-only affordance reversed). */
-.dmo-approve__pdf {
-  margin-top: 0.375rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-
-.dmo-approve__send[data-dmo-peso-pdf] {
-  cursor: pointer;
-  opacity: 1;
-}
-
-.dmo-approve__send[data-dmo-peso-pdf]:disabled {
-  cursor: wait;
-  opacity: 0.75;
-}
-
-.dmo-approve__pdf-outcome p {
-  margin: 0;
-  color: var(--dmo-color-text-secondary, #444);
-  font-size: var(--dmo-font-size-sm, 0.8125rem);
-}
-
 /* The page-owned failure surface (conflict = clear message + supplied recovery choices, D2). */
 .dmo-approve__state[data-dmo-conflict] {
   border: 1px solid var(--dmo-color-danger, #9b1c1c);

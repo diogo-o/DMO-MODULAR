@@ -117,15 +117,6 @@ public sealed class ApproveIndexModel : PageModel
     /// <summary>R4 â€” the Enviar-para-produção affordance state (Q-SEND, Â§23.2).</summary>
     public SendAffordancePresentation? Send { get; private set; }
 
-    /// <summary>
-    /// Whether the Peso PDF generation action is offered (P2-T08 documents slice): true only for a
-    /// DECIDED, production-bound Peso â€” documents become available after the decision and their
-    /// target is derived from the Job On traversal facts (a pending <c>Job On por associar</c>
-    /// Peso has no target). Generation is executed by the page-owned adapter against the
-    /// <c>peso-pdf</c> route and never shows a filesystem path, only the relative convention target.
-    /// </summary>
-    public bool CanGeneratePesoPdf { get; private set; }
-
     /// <summary>R5 â€” the decision trail of the opened record.</summary>
     public AuditTrailPresentation? Trail { get; private set; }
 
@@ -251,13 +242,6 @@ public sealed class ApproveIndexModel : PageModel
 
         ObservedVersion = sheet.Peso.Version;
         Sheet = new ReviewSheetView(sheet.Peso, sheet.Decisions, sheet.Availability);
-
-        // The Peso PDF action is offered only for decided, production-bound records (documents
-        // become available after the decision; the target needs the Job On traversal facts).
-        var decided = sheet.Peso.Status is not null
-            && (PesoStatusTokens.Parse(sheet.Peso.Status) is PesoStatus.Aprovado
-                or PesoStatus.NaoAprovado);
-        CanGeneratePesoPdf = decided && sheet.Peso.Production is not null;
 
         Actions = BuildDecisionBar(sheet);
         Send = BuildSendAffordance(sheet);

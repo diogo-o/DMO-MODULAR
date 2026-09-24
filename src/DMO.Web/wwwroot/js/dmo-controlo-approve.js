@@ -222,58 +222,10 @@ if (!window.dmoControloApprove) {
       });
     }
 
-    /**
-     * Wires the Peso PDF generation action (P2-T08 documents slice): an explicit human action on
-     * decided records that posts ONLY the canonical peso_id to the owning-workflow route. The
-     * backend is authoritative; the outcome region shows the deterministic output result (file
-     * name + relative convention target) — never a filesystem path. A repeated invocation on an
-     * already-generated target answers "já disponível" (the backend never overwrites). Refusals
-     * enter the page-owned failure presentation (typed reason); pending state prevents duplicate
-     * invocation while keeping the accessible name.
-     */
-    function wirePesoPdf(root) {
-      var button = root.querySelector("[data-dmo-peso-pdf]");
-      var outcome = root.querySelector("[data-dmo-peso-pdf-outcome]");
-      if (!button || !outcome) { return; }
-
-      button.addEventListener("click", function () {
-        var state = observedState(root);
-        if (!state.pesoId || button.disabled) { return; }
-
-        var original = button.textContent;
-        var pending = button.getAttribute("data-dmo-peso-pdf-pending") || original;
-        button.textContent = pending;
-        button.disabled = true;
-
-        api(basePath + "/pesos/" + state.pesoId + "/peso-pdf", "POST", null).then(function (response) {
-          button.textContent = original;
-          button.disabled = false;
-
-          if (!response.ok) {
-            renderMutationFailure(root, response);
-            return;
-          }
-
-          var payload = response.body || {};
-          outcome.hidden = false;
-          outcome.removeAttribute("role");
-          outcome.textContent = "";
-          var paragraph = document.createElement("p");
-          if (payload.status === "already-available") {
-            paragraph.textContent = "PDF já disponível: " + payload.fileName + " — " + payload.relativePath + ".";
-          } else {
-            paragraph.textContent = "PDF gerado: " + payload.fileName + " — " + payload.relativePath + ".";
-          }
-          outcome.appendChild(paragraph);
-        });
-      });
-    }
-
     function initialize() {
       document.querySelectorAll("[data-dmo-approve-root]").forEach(function (root) {
         wireOpenRoutes(root);
         wireDecisions(root);
-        wirePesoPdf(root);
       });
     }
 

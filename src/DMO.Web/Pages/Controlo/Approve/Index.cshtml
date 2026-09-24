@@ -191,25 +191,6 @@
                 <span class="dmo-approve__action-reason" id="dmo-approve-send-reason" data-dmo-send-reason-text="true">@send.Reason</span>
             }
 
-            @if (Model.CanGeneratePesoPdf)
-            {
-                @* Peso PDF generation (P2-T08 documents slice): explicit human action on a decided
-                   record. The adapter posts to /controlo/approve/pesos/{pesoId}/peso-pdf (the
-                   owning workflow gate) and shows the deterministic OUTPUT result (file name +
-                   relative convention target) — never a filesystem path. Existing files are never
-                   overwritten; the outcome states "gerado" or "já disponível". *@
-                <div class="dmo-approve__pdf" data-dmo-peso-pdf-region="true">
-                    <button type="button"
-                            class="dmo-approve__send"
-                            data-dmo-peso-pdf="true"
-                            data-dmo-peso-pdf-pending="A gerar…">Gerar PDF do Peso</button>
-                    <span class="dmo-approve__action-reason" data-dmo-peso-pdf-hint="true">
-                        O PDF é gerado a partir dos dados submetidos (os mesmos factos do Peso).
-                    </span>
-                    <div class="dmo-approve__pdf-outcome" data-dmo-peso-pdf-outcome="true" hidden></div>
-                </div>
-            }
-
             @* Page-owned failure surface (conflict = message + explicit reload recovery, D2) *@
             <div class="dmo-approve__state" data-dmo-approve-state="true" hidden></div>
         </div>

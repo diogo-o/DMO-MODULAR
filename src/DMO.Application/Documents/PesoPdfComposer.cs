@@ -48,11 +48,11 @@ public static class PesoPdfComposer
                 "records (invariant: the service refuses before composing).");
         }
 
-        // Data: the submission date — the date the record entered the review circuit, always
-        // present on the decided records this document is generated for (fallback to creation
-        // date is defensive only; no production date exists on the shared read model).
-        var date = sheet.SubmittedAt?.ToString("yyyy-MM-dd")
-            ?? sheet.CreatedAt.ToString("yyyy-MM-dd");
+        // Data: the Job On PRODUCTION date — the control date of the record — resolved through the
+        // shared read model's traversal facts (cm_id → jobon_id; never a second traversal inside
+        // the document). SubmittedAt is submission/audit information only and is never shown as
+        // the production Data; an absent production date is the truthful "—", never a substitute.
+        var date = production.ProductionDate?.ToString("yyyy-MM-dd") ?? "—";
 
         return new PesoPdfDocumentModel(
             sheet.PesoId,

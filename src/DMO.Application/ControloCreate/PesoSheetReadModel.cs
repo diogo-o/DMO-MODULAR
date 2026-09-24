@@ -57,13 +57,17 @@ public sealed record PesoContextProjection(
 public sealed record PesoPendingProjection(Guid ToolId, ToolSummaryProjection Tool);
 
 /// <summary>
-/// The traversal facts of the production case: reference, production number and machine through
-/// <c>cm_id → jobon_id</c> (never stored on the Peso; <c>null</c> while pending).
+/// The traversal facts of the production case: reference, production number, machine and the
+/// production DATE through <c>cm_id → jobon_id</c> (never stored on the Peso; <c>null</c> while
+/// pending). <see cref="ProductionDate"/> is the Job On production date — the record's control
+/// date; it is never substituted by <c>SubmittedAt</c> (which remains submission/audit
+/// information only).
 /// </summary>
 public sealed record PesoProductionProjection(
     string Reference,
     string ProductionNumber,
-    string Machine);
+    string Machine,
+    DateOnly? ProductionDate);
 
 /// <summary>One Peso row of the read model: stable row id, dense position and the three facts.</summary>
 public sealed record PesoRowReadModel(

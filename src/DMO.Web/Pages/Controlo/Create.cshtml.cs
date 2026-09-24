@@ -108,6 +108,15 @@ public sealed class CreateModel : PageModel
     /// <summary>R7 — the canonical Peso status presentation.</summary>
     public RecordStatusPresentation Status { get; private set; } = null!;
 
+    /// <summary>
+    /// Whether the Peso PDF generation action is offered (P2-T08 documents slice): true only for a
+    /// DECIDED, production-bound draft — Create owns the operational document work after the
+    /// decision (Approve owns only the decision; its surface stays focused on approve/reject/
+    /// reopen). The action posts to the documents route through the page-owned adapter and never
+    /// shows filesystem paths, only the relative convention target.
+    /// </summary>
+    public bool CanGeneratePesoPdf { get; private set; }
+
     /// <summary>Whether the draft is already submitted (Create-side mutations closed).</summary>
     public bool IsSubmitted { get; private set; }
 
@@ -334,12 +343,22 @@ public sealed class CreateModel : PageModel
         Draft = sheet;
         IsSubmitted = sheet.SubmittedAt is not null;
         ObservedVersion = sheet.Version;
+
+        // The Peso PDF action is offered only for decided, production-bound drafts (Create owns
+        // the operational document work after the decision; the target needs the Job On
+        // traversal facts).
+        var draftStatus = PesoStatusTokens.Parse(sheet.Status);
+        CanGeneratePesoPdf = draftStatus is PesoStatus.Aprovado or PesoStatus.NaoAprovado
+            && sheet.Production is not null;
+
         Strip = sheet.Production is { } production
             ? new ProductionStripModel(
                 production.Reference,
                 production.ProductionNumber,
                 production.Machine,
-                ProductionDate: null,
+                // The Job On production date — the control date of the record (never substituted
+                // by SubmittedAt, which stays submission/audit information only).
+                ProductionDate: production.ProductionDate,
                 Processo: sheet.Context?.Tool.Processo is { } processo ? ToolTokens.ToToken(processo) : null)
             : null;
         CmContext = sheet.Context is { } context

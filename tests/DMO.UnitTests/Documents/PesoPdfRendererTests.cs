@@ -105,7 +105,7 @@ public sealed class PesoPdfRendererTests
         Assert.Contains("REF-X", text);
         Assert.Contains("2026-001", text);
         Assert.Contains("B1", text);
-        Assert.Contains("2026-09-21", text); // Data = the submission date
+        Assert.Contains("2026-09-19", text); // Data = the Job On production date (never SubmittedAt)
         Assert.Contains("CM-1100", text);
         Assert.Contains("NNPB", text);
         Assert.Contains("Aprovado", text);

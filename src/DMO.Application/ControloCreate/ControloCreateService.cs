@@ -701,7 +701,8 @@ public sealed class ControloCreateService : IControloCreateService
                     var production = new PesoProductionProjection(
                         value.Reference,
                         value.ProductionNumber,
-                        value.Machine);
+                        value.Machine,
+                        value.ProductionDate);
 
                     return Compose(peso, contextProjection, pending: null, production);
                 }

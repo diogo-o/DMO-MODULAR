@@ -588,7 +588,8 @@ public static class ControloCreateEndpoints
             ? new PesoProductionResponse(
                 production.Reference,
                 production.ProductionNumber,
-                production.Machine)
+                production.Machine,
+                production.ProductionDate)
             : null,
         sheet.CreatedByUserId,
         sheet.CreatedAt,
@@ -748,11 +749,12 @@ public static class ControloCreateEndpoints
         Guid ToolId,
         JobOnEndpoints.JobOnToolProjectionResponse Tool);
 
-    /// <summary>The traversal production facts of the sheet.</summary>
+    /// <summary>The traversal production facts of the sheet (incl. the Job On production date).</summary>
     public sealed record PesoProductionResponse(
         string Reference,
         string ProductionNumber,
-        string Machine);
+        string Machine,
+        DateOnly? ProductionDate);
 
     /// <summary>One row of the sheet.</summary>
     public sealed record PesoRowResponse(

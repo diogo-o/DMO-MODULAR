@@ -273,12 +273,30 @@
         <div class="dmo-controlo__state" data-dmo-controlo-state="true" hidden></div>
     </div>
 
-    @* ---- R8 — Document seam region (reserved; NO generation action and NO availability
-              lookup — P2-T08 owns generation/availability, Q-DOCREAD) ---------------------- *@
+    @* ---- R8 — Documents region: Peso PDF generation for decided, production-bound records
+          (P2-T08 slice: Create owns the operational document work after the decision; Approve
+          owns only the decision). The action posts to the documents route through the page-owned
+          adapter and never shows filesystem paths, only the relative convention target. *@
     <div class="dmo-controlo__region" data-dmo-controlo-region="documents" aria-label="Documentos">
-        <p class="dmo-controlo__documents-seam" data-dmo-documents-seam="true">
-            A disponibilidade de documentos é apresentada após a aprovação.
-        </p>
+        @if (Model.CanGeneratePesoPdf)
+        {
+            <div class="dmo-controlo__pdf" data-dmo-peso-pdf-region="true">
+                <button type="button"
+                        class="dmo-controlo__button"
+                        data-dmo-peso-pdf="true"
+                        data-dmo-peso-pdf-pending="A gerar…">Gerar PDF do Peso</button>
+                <span class="dmo-controlo__pdf-hint" data-dmo-peso-pdf-hint="true">
+                    O PDF é gerado a partir dos dados deste Peso (os mesmos factos apresentados).
+                </span>
+                <div class="dmo-controlo__pdf-outcome" data-dmo-peso-pdf-outcome="true" hidden></div>
+            </div>
+        }
+        else
+        {
+            <p class="dmo-controlo__documents-seam" data-dmo-documents-seam="true">
+                A disponibilidade de documentos é apresentada após a aprovação.
+            </p>
+        }
     </div>
 
     @* Page-owned adapter state: the REAL observed version and anchors (backend facts only). *@

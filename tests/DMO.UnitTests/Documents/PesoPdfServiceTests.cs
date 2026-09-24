@@ -157,7 +157,7 @@ public sealed class PesoPdfServiceTests
             var files = new FakePesoPdfFileStore();
             var sheet = PesoPdfFixtures.DecidedSheet() with
             {
-                Production = new PesoProductionProjection("REF/X", "2026-001", "B1"),
+                Production = new PesoProductionProjection("REF/X", "2026-001", "B1", null),
             };
             var service = CreateService(settings, new FakeControloRead(sheet), files, new RecordingRenderer());
 

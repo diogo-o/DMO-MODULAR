@@ -8,7 +8,11 @@
 //   D2 — a typed 409 `stale-version` on any guarded mutation enters the conflict state with the
 //        explicit recovery action (reload the authoritative state), exactly ONE request is issued
 //        (no automatic retry, no auto-merge, no overwrite of the newer version), the recovery
-//        control reloads, and NON-stale typed failures keep the existing renderErrors behavior.
+//        control reloads, and NON-stale typed failures keep the existing renderErrors behavior;
+//   P2-T08 — the Peso PDF action (Create owns the operational document work): one POST with NO
+//        body on the canonical peso_id, pending state while in flight, the deterministic output
+//        result shown (generated / already-available; never rewritten), refusals into the
+//        page-owned errors presentation, no reload.
 //
 // Usage: node dmo-controlo-adapter.behavior.mjs <absolute-path-to-dmo-controlo.js>
 // Exit code 0 = all scenarios passed; 1 = a scenario failed (details on stdout).
@@ -267,6 +271,17 @@ function createSurface(overrides = {}) {
     const associateButton = new Element("button", { "data-dmo-associate": "true" });
     associateButton.textContent = "Associar";
     root.appendChild(associateButton);
+  }
+
+  // The P2-T08 Peso PDF action surface (rendered by the real Create page for decided,
+  // production-bound drafts).
+  if (overrides.pesoPdfAction) {
+    const pdfButton = new Element("button", { "data-dmo-peso-pdf": "true", "data-dmo-peso-pdf-pending": "A gerar…" });
+    pdfButton.textContent = "Gerar PDF do Peso";
+    root.appendChild(pdfButton);
+    const pdfOutcome = new Element("div", { "data-dmo-peso-pdf-outcome": "true" });
+    pdfOutcome.hidden = true;
+    root.appendChild(pdfOutcome);
   }
 
   return root;
@@ -670,6 +685,109 @@ await scenario("S8 glass-density validation failure keeps the plain error presen
   assert.match(region.textContent, /DENSITY_NOT_POSITIVE/, "validation token listed");
   assert.equal(region.getAttribute("data-dmo-conflict"), null, "no conflict marker for validation-failed");
   assert.equal(region.querySelector("[data-dmo-conflict-reload]"), null, "no recovery control for validation-failed");
+});
+
+// S9 — P2-T08 documents slice: the Peso PDF action on the Create surface posts ONE request with
+// NO body (only the canonical peso_id in the path), prevents duplicate invocation while pending
+// (accessible name preserved), shows the deterministic output result (generated / already-
+// available; never rewritten), enters reduced failures into the page-owned errors presentation,
+// and never reloads the page.
+await scenario("S9 Peso PDF generation posts once, shows the output and never reloads", async () => {
+  const documentStub = createDocument();
+  const root = createSurface({ pesoId: "11111111-1111-1111-1111-111111111111", version: 2, submitted: true, pesoPdfAction: true, draftActions: ["submit"] });
+  documentStub.roots.push(root);
+  const windowStub = createWindow();
+  const fetchStub = createFetch([
+    {
+      method: "POST",
+      pathPrefix: "/controlo/create/pesos/11111111-1111-1111-1111-111111111111/peso-pdf",
+      response: {
+        status: 200,
+        body: {
+          status: "generated",
+          pesoId: "11111111-1111-1111-1111-111111111111",
+          version: 2,
+          fileName: "Peso_ref-X_B1.pdf",
+          relativePath: "ref-X/prod-1/Peso_ref-X_B1.pdf",
+          bytes: 42,
+        },
+      },
+    },
+  ]);
+
+  loadAdapter(windowStub, documentStub, fetchStub);
+
+  const button = root.querySelector("[data-dmo-peso-pdf]");
+  const outcome = root.querySelector("[data-dmo-peso-pdf-outcome]");
+
+  button.click();
+  assert.equal(button.disabled, true, "pending state blocks duplicate invocation while in flight");
+  assert.equal(button.textContent, "A gerar…", "accessible name preserved while pending");
+  await flush();
+
+  assert.equal(fetchStub.calls.length, 1, "exactly ONE peso-pdf request");
+  assert.equal(fetchStub.calls[0].method, "POST", "the peso-pdf request is a POST");
+  assert.equal(fetchStub.calls[0].path, "/controlo/create/pesos/11111111-1111-1111-1111-111111111111/peso-pdf",
+    "the request targets the canonical peso_id documents route");
+  assert.equal(fetchStub.calls[0].body, null, "the peso-pdf request carries NO body");
+  assert.equal(button.disabled, false, "button restored after the response");
+  assert.equal(button.textContent, "Gerar PDF do Peso", "button text restored after the response");
+  assert.equal(outcome.hidden, false, "the outcome region is revealed");
+  assert.match(outcome.textContent, /PDF gerado: Peso_ref-X_B1.pdf/, "the generated output result is shown");
+  assert.equal(windowStub.reloadCalls, 0, "generation does NOT reload the page");
+});
+
+// S10 — P2-T08: an existing deterministic target is reported as already-available (the backend
+// never overwrites) and a typed refusal enters the pages-owned error presentation.
+await scenario("S10 Peso PDF already-available and typed refusal handling", async () => {
+  const documentStub = createDocument();
+  const root = createSurface({ pesoId: "22222222-2222-2222-2222-222222222222", version: 2, submitted: true, pesoPdfAction: true, draftActions: ["submit"] });
+  documentStub.roots.push(root);
+  const windowStub = createWindow();
+  const fetchStub = createFetch([
+    {
+      method: "POST",
+      pathPrefix: "/controlo/create/pesos/22222222-2222-2222-2222-222222222222/peso-pdf",
+      response: {
+        status: 200,
+        body: { status: "already-available", pesoId: "22222222-2222-2222-2222-222222222222", version: 2, fileName: "Peso_ref-X_B1.pdf", relativePath: "ref-X/prod-1/Peso_ref-X_B1.pdf", bytes: 42 },
+      },
+    },
+  ]);
+
+  loadAdapter(windowStub, documentStub, fetchStub);
+
+  root.querySelector("[data-dmo-peso-pdf]").click();
+  await flush();
+
+  const outcome = root.querySelector("[data-dmo-peso-pdf-outcome]");
+  assert.match(outcome.textContent, /PDF já disponível: Peso_ref-X_B1.pdf/, "an existing target is reported as already-available");
+  assert.equal(windowStub.reloadCalls, 0, "no reload on already-available");
+
+  // A second surface with a typed refusal into the errors presentation.
+  const documentStub2 = createDocument();
+  const root2 = createSurface({ pesoId: "33333333-3333-3333-3333-333333333333", version: 2, submitted: true, pesoPdfAction: true, draftActions: ["submit"] });
+  documentStub2.roots.push(root2);
+  const windowStub2 = createWindow();
+  const fetchStub2 = createFetch([
+    {
+      method: "POST",
+      pathPrefix: "/controlo/create/pesos/33333333-3333-3333-3333-333333333333/peso-pdf",
+      response: { status: 409, body: { reason: "not-decided", message: "Este Peso ainda não foi decidido." } },
+    },
+  ]);
+
+  loadAdapter(windowStub2, documentStub2, fetchStub2);
+
+  root2.querySelector("[data-dmo-peso-pdf]").click();
+  await flush();
+
+  const region = root2.querySelector("[data-dmo-controlo-state]");
+  assert.equal(region.hidden, false, "a typed refusal is surfaced in the errors presentation");
+  assert.match(region.textContent, /not-decided/, "the typed refusal reason is shown");
+  assert.equal(region.getAttribute("data-dmo-conflict"), null, "a not-decided refusal is not a conflict");
+  assert.equal(root2.querySelector("[data-dmo-peso-pdf]").disabled, false, "the button is restored after the refusal");
+  assert.equal(windowStub2.reloadCalls, 0, "no reload on refusal");
 });
 
 // ---------------------------------------------------------------------------------------------

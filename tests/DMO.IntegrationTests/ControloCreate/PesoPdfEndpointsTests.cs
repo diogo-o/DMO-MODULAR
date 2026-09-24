@@ -3,9 +3,10 @@ using System.Text.Json;
 using DMO.Application.Access;
 using DMO.Domain.Controlo;
 using DMO.Domain.Tools;
+using DMO.IntegrationTests.ControloApprove;
 using PesoId = DMO.Domain.Controlo.PesoId;
 
-namespace DMO.IntegrationTests.ControloApprove;
+namespace DMO.IntegrationTests.ControloCreate;
 
 /// <summary>
 /// HTTP-class proofs of the P2-T08 Peso PDF documents slice over the real service stack (real
@@ -13,13 +14,17 @@ namespace DMO.IntegrationTests.ControloApprove;
 /// configured base directory at the deterministic convention target (directories created
 /// automatically), a second generation answers <c>already-available</c> without overwriting, an
 /// undecided Peso is refused <c>not-decided</c>, an absent directory setting is refused
-/// <c>pdf-directory-not-configured</c>, and the route is gated by the Controlo Approve module
-/// policy (the owning workflow).
+/// <c>pdf-directory-not-configured</c>, and the route is gated by the Controlo CREATE module
+/// policy — Create owns the operational document work after the decision, so a create-only caller
+/// reaches the route while an approve-only caller is denied (Approve stays focused on the
+/// decision).
 /// </summary>
 /// <remarks>
 /// The Peso facts come from the shared in-memory composition (the same store the real
-/// ControloCreateService writes through); the PDF is stored on the REAL server-host filesystem
-/// under a temp base directory, exactly like the accepted Q-PDF server-host semantics.</remarks>
+/// ControloCreateService writes through; the P2-T06 review store is reused only to ARRANGE the
+/// decided state of the fixture — the documents service itself stays policy-free and reads only
+/// the shared Peso sheet); the PDF is stored on the REAL server-host filesystem under a temp base
+/// directory, exactly like the accepted Q-PDF server-host semantics.</remarks>
 public sealed class PesoPdfEndpointsTests
 {
     // ----------------------------------------------------------------------------------------
@@ -94,7 +99,7 @@ public sealed class PesoPdfEndpointsTests
         var pesoId = await SeedApprovedPesoAsync(composition, "PDF1");
         await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
 
-        using var factory = P2T06TestHost.ForUser(P2T06TestHost.AllGranted(), composition);
+        using var factory = P2T06TestHost.ForUser(P2T06TestHost.CreateOnly(), composition);
         using var client = factory.CreateClient();
 
         var target = Path.Combine(
@@ -133,8 +138,9 @@ public sealed class PesoPdfEndpointsTests
         Assert.Equal(stored, File.ReadAllBytes(target));
 
         // No temporary debris remains anywhere in the document tree.
-        Assert.Empty(Directory.EnumerateFiles(directory.FullPath, "*", SearchOption.AllDirectories)
-            .Where(path => !path.EndsWith("Peso_ref-PDF1_B1.pdf", StringComparison.Ordinal)));
+        Assert.DoesNotContain(
+            Directory.EnumerateFiles(directory.FullPath, "*", SearchOption.AllDirectories),
+            path => !path.EndsWith("Peso_ref-PDF1_B1.pdf", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -145,7 +151,7 @@ public sealed class PesoPdfEndpointsTests
         var pesoId = await SeedSubmittedPesoAsync(composition, "PDF2");
         await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
 
-        using var factory = P2T06TestHost.ForUser(P2T06TestHost.AllGranted(), composition);
+        using var factory = P2T06TestHost.ForUser(P2T06TestHost.CreateOnly(), composition);
         using var client = factory.CreateClient();
 
         using var response = await PostPesoPdfAsync(client, pesoId);
@@ -161,7 +167,7 @@ public sealed class PesoPdfEndpointsTests
         var composition = new P2T06TestComposition();
         var pesoId = await SeedApprovedPesoAsync(composition, "PDF3");
 
-        using var factory = P2T06TestHost.ForUser(P2T06TestHost.AllGranted(), composition);
+        using var factory = P2T06TestHost.ForUser(P2T06TestHost.CreateOnly(), composition);
         using var client = factory.CreateClient();
 
         using var response = await PostPesoPdfAsync(client, pesoId);
@@ -180,7 +186,7 @@ public sealed class PesoPdfEndpointsTests
             composition,
             Path.Combine(Path.GetTempPath(), $"dmo-peso-pdf-absent-{Guid.NewGuid():N}"));
 
-        using var factory = P2T06TestHost.ForUser(P2T06TestHost.AllGranted(), composition);
+        using var factory = P2T06TestHost.ForUser(P2T06TestHost.CreateOnly(), composition);
         using var client = factory.CreateClient();
 
         using var response = await PostPesoPdfAsync(client, pesoId);
@@ -191,15 +197,32 @@ public sealed class PesoPdfEndpointsTests
     }
 
     // ----------------------------------------------------------------------------------------
-    // Access (the owning workflow gate)
+    // Access (the owning workflow gate: Create owns the operational document work)
     // ----------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task Generate_IsDeniedToACreateOnlyCaller()
+    public async Task Generate_IsDeniedToAnApproveOnlyCaller()
     {
         using var directory = new TempDirectory();
         var composition = new P2T06TestComposition();
         var pesoId = await SeedApprovedPesoAsync(composition, "PDF5");
+        await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
+
+        // Approve-only grant: the decision surface owns no document execution.
+        using var factory = P2T06TestHost.ForUser(P2T06TestHost.AllGranted(), composition);
+        using var client = factory.CreateClient();
+
+        using var response = await PostPesoPdfAsync(client, pesoId);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Generate_IsReachedByACreateCaller()
+    {
+        using var directory = new TempDirectory();
+        var composition = new P2T06TestComposition();
+        var pesoId = await SeedApprovedPesoAsync(composition, "PDF6");
         await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
 
         using var factory = P2T06TestHost.ForUser(P2T06TestHost.CreateOnly(), composition);
@@ -207,7 +230,8 @@ public sealed class PesoPdfEndpointsTests
 
         using var response = await PostPesoPdfAsync(client, pesoId);
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("generated", (await ReadJsonAsync(response)).GetProperty("status").GetString());
     }
 
     // ----------------------------------------------------------------------------------------
@@ -218,7 +242,7 @@ public sealed class PesoPdfEndpointsTests
     {
         var request = new HttpRequestMessage(
             HttpMethod.Post,
-            $"/controlo/approve/pesos/{pesoId}/peso-pdf");
+            $"/controlo/create/pesos/{pesoId}/peso-pdf");
 
         return P2T06TestHost.SendAuthenticatedAsync(client, request);
     }

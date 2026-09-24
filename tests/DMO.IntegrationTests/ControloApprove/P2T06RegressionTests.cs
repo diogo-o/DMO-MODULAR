@@ -49,17 +49,18 @@ public sealed class P2T06RegressionTests
     // ------------------------------------------------------------------- BND2 (AC-B2) / P2-T08 boundary
 
     /// <summary>
-    /// BND2 â€” updated by the P2-T08 documents slice: the Peso PDF generation surface now exists
-    /// on the Approve working area (the sanctioned documents surface: the
-    /// <c>src/DMO.Application/Documents</c> area, <c>DocumentsEndpoints.cs</c>, the
-    /// composition-root wiring in <c>Program.cs</c> and the page-owned action hooks â€” P2-T08 owns
-    /// generation, not P2-T06), while every OTHER P2-T08 execution stays absent: no email
+    /// BND2 â€” updated by the P2-T08 documents slice: the Peso PDF generation surface lives on
+    /// Controlo_CREATE (Create owns the operational document work after the decision â€” the
+    /// sanctioned documents surface: the <c>src/DMO.Application/Documents</c> area,
+    /// <c>DocumentsEndpoints.cs</c>, the composition-root wiring in <c>Program.cs</c> and the
+    /// page-owned action hooks of the Create surface/adapters), while the Controlo APPROVE area
+    /// stays free of Peso PDF vocabulary: Approve owns only the decision. No email
     /// sending/routing, no attachments, no document identity, no regeneration, no raw file-stream
-    /// mechanics and no Pegamentos/Resume execution anywhere in the P2-T06 area (contract
-    /// Â§23/Â§22, BND-B2). The Peso PDF vocabulary never leaks into the P2-T06-owned code.
+    /// mechanics and no Pegamentos/Resume execution exist anywhere in the P2-T06 area (contract
+    /// Â§23/Â§22, BND-B2).
     /// </summary>
     [Fact]
-    public void BND2_PesoPdfExecutionIsSanctionedAndNoEmailOrOtherDocumentExecutionExists()
+    public void BND2_PesoPdfExecutionIsSanctionedOnCreateAndNoEmailOrOtherDocumentExecutionExists()
     {
         // Still-forbidden P2-T08 mechanics: zero occurrences everywhere in the P2-T06 area.
         foreach (var token in P2T06ProductionScan.P2T08ForbiddenExecutionTokens)
@@ -75,15 +76,11 @@ public sealed class P2T06RegressionTests
                 $"The P2-T08 execution token '{token}' appears in code/markup of: {string.Join(", ", offenders)}.");
         }
 
-        // The Peso PDF vocabulary appears ONLY in the sanctioned documents surface (the Approve
-        // page/adapter action hooks and the composition-root wiring) â€” never in the P2-T06-owned
-        // domain/application/persistence/endpoint code.
+        // The Peso PDF vocabulary NEVER appears in the P2-T06 area (the Approve surface owns no
+        // document work): the only allowed mention is the composition-root wiring of the shared
+        // documents service in Program.cs.
         var sanctionedPdfSources = new[]
         {
-            "src/DMO.Web/Pages/Controlo/Approve/Index.cshtml",
-            "src/DMO.Web/Pages/Controlo/Approve/Index.cshtml.cs",
-            "src/DMO.Web/wwwroot/js/dmo-controlo-approve.js",
-            "src/DMO.Web/wwwroot/css/dmo-controlo-approve.css",
             "src/DMO.Web/Program.cs",
         };
 
@@ -101,7 +98,7 @@ public sealed class P2T06RegressionTests
 
             Assert.True(
                 offenders.Count == 0,
-                $"The Peso PDF token '{token}' appears outside the sanctioned documents surface in: {string.Join(", ", offenders)}.");
+                $"The Peso PDF token '{token}' appears outside the sanctioned composition wiring in: {string.Join(", ", offenders)}.");
         }
 
         // No send route exists in the endpoint surface (route-count statement Â§13.2).

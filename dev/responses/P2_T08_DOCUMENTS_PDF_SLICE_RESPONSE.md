@@ -5,6 +5,13 @@
 **Task class:** directed functional slice (no new general audit; no PDF redesign; no new
 tables/migrations). **Status:** IMPLEMENTED — focused tests green; awaiting review per the STOP
 rules (no availability registration, no route registration in `CurrentBuildAvailable`).
+**Correction record:** the following correction slice (commit `…CORRECTION…`) moved the
+user-facing Peso PDF action from Controlo_Approve to Controlo_Create (Create owns the operational
+document work after the decision; Approve stays focused on approve/reject/reopen) and corrected
+the PDF "Data" field to the Job On PRODUCTION date (resolved through the shared read model's
+traversal facts — never `SubmittedAt`, which stays submission/audit information only). The
+Documents application service, the renderer, the storage, the folder structure, the filename
+convention, the PDF layout, the calculations, the migrations and all other surfaces are UNCHANGED.
 
 ---
 
@@ -33,10 +40,12 @@ rules (no availability registration, no route registration in `CurrentBuildAvail
 5. Stored the PDF atomically (temp file + `File.Move` overwrite:false) at
    `Peso_<reference>_<machine>.pdf`; an existing target is reported `already-available` and is
    NEVER overwritten (frozen output immutability).
-6. Returned/shown the generated output: `POST /controlo/approve/pesos/{pesoId}/peso-pdf`
-   (gated by the owning Controlo Approve policy) + the "Gerar PDF do Peso" action on the Approve
-   review sheet for decided records, with the outcome (file name + relative convention target —
-   never a filesystem path) rendered by the page-owned adapter.
+6. Returned/shown the generated output: `POST /controlo/create/pesos/{pesoId}/peso-pdf`
+   (gated by the owning Controlo Create policy — **correction slice:** the action moved from
+   Approve to Create, which owns the operational document work; Approve stays focused on
+   approve/reject/reopen) + the "Gerar PDF do Peso" action on the Create page (R8) for decided,
+   production-bound drafts, with the outcome (file name + relative convention target — never a
+   filesystem path) rendered by the page-owned adapter.
 7. History/immutability preserved: generation is read-only on the Peso (no version bump, no
    record write); content derives only from the frozen sheet; decided records are offered the
    action; undecided/submitted records are refused `not-decided`.
@@ -48,9 +57,11 @@ rules (no availability registration, no route registration in `CurrentBuildAvail
   plan/P2-T08 handoff prose says `Peso_<reference>_<line>.pdf` (external
   `DOCUMENTS_AND_FILES.md` is not in this repo). Used **`<machine>`** (the only convention
   closed inside this repository; the value is the read model's `Production.Machine`).
-- **"Data" in the identification block:** the shared read model carries no production date
-  (Create's strip shows `—` when opening via `pesoId`); the PDF uses **`SubmittedAt`** (the
-  record's completion date, always present on decided records).
+- **"Data" in the identification block (corrected):** the shared read model was extended
+  MINIMALLY with `PesoProductionProjection.ProductionDate` (fed from the Job On ficha date on
+  the existing composition path — no second traversal); the PDF shows the **production date**
+  (absent → "—"). `SubmittedAt` is submission/audit information only and never substitutes the
+  production Data. The Create draft strip now also shows this date (same read).
 - **Generation precondition:** DECIDED (`aprovado`/`nao_aprovado`) + production-bound
   (`Production` projection present). A pending `Job On por associar` Peso has no document target
   (`production-binding-missing`); documents become available after the decision (Create R8 seam
@@ -72,24 +83,31 @@ rules (no availability registration, no route registration in `CurrentBuildAvail
 `PesoPdfFileStore.cs` (`IPesoPdfFileStore` + `ServerHostPesoPdfFileStore`),
 `PesoPdfService.cs` (`IPesoPdfService` + orchestration).
 
-**New (web):** `src/DMO.Web/Endpoints/DocumentsEndpoints.cs` (the route).
+**New (web):** `src/DMO.Web/Endpoints/DocumentsEndpoints.cs` (the route; correction slice: now
+under `/controlo/create` with the `controlo-create` policy).
 
-**Changed (web):** `src/DMO.Web/Program.cs` (DI + `MapDocumentsEndpoints`),
-`src/DMO.Web/Pages/Controlo/Approve/Index.cshtml` + `.cs` (PDF action + outcome region),
-`src/DMO.Web/wwwroot/js/dmo-controlo-approve.js` (adapter: one POST, pending state, outcome),
-`src/DMO.Web/wwwroot/css/dmo-controlo-approve.css` (styles).
+**Changed (web):** `src/DMO.Web/Program.cs` (DI + `MapDocumentsEndpoints`); correction slice —
+the action moved from Approve to Create: `src/DMO.Web/Pages/Controlo/Create.cshtml` + `.cs` (R8
+PDF action + outcome region + strip production date), `src/DMO.Web/wwwroot/js/dmo-controlo.js`
+(adapter: one POST, pending state, outcome), `src/DMO.Web/wwwroot/css/dmo-controlo.css`
+(styles), plus the shared read model extension `PesoSheetReadModel.cs`
+(`PesoProductionProjection.ProductionDate` fed from the Job On ficha on the existing composition
+path) and both sheet transports (`PesoProductionResponse` in ControloCreateEndpoints /
+ControloApproveEndpoints). The Approve surface (page/adapter/CSS) had its PDF action REMOVED.
 
 **New (tests):** `tests/DMO.UnitTests/Documents/` (naming, composer, renderer incl. xref-walk +
 pagination + no-path, service orchestration, real file store over temp dirs);
-`tests/DMO.IntegrationTests/ControloApprove/PesoPdfEndpointsTests.cs` (HTTP: generate/store on
-disk, already-available, not-decided, not-configured, workspace-unavailable, create-only 403).
+`tests/DMO.IntegrationTests/ControloCreate/PesoPdfEndpointsTests.cs` (HTTP: generate/store on
+disk, already-available, not-decided, not-configured, workspace-unavailable, create-only
+REACHES / approve-only DENIED — gate inversion of the correction slice).
 
-**Changed (tests, regression):** BND2 boundary row updated (Peso PDF execution sanctioned on the
-Approve surface; email/send/regeneration/document-identity still forbidden everywhere) +
-`P2T06ProductionScan` token split + P2-T05 allow-list disclosed extension for
-`src/DMO.Application/Documents/` and `DocumentsEndpoints.cs` (same pattern as P2-T06/P2-T07) +
-approve adapter `.mjs` harness scenarios (Peso PDF) + `P2T06RenderingTests` decided-record render
-row.
+**Changed (tests, regression):** BND2 boundary row updated (Peso PDF execution sanctioned on
+CREATE only; the Controlo Approve area stays free of it; email/send/regeneration/
+document-identity still forbidden everywhere) + `P2T06ProductionScan` token split + P2-T05
+allow-list disclosed extension for `src/DMO.Application/Documents/` and `DocumentsEndpoints.cs`
+(same pattern as P2-T06/P2-T07) + the create-adapter `.mjs` harness scenarios (Peso PDF; removed
+from the approve harness) + `P2T06RenderingTests` decided-record render row (Approve absence /
+Create presence).
 
 ## 5. Final path / filename used
 
@@ -106,7 +124,7 @@ row.
 | Block | Source |
 |---|---|
 | Identificação: Referência / Produção / Máquina | `Production.Reference / .ProductionNumber / .Machine` (Job On traversal facts) |
-| Identificação: Data | `SubmittedAt` (decision-completion date; fallback `CreatedAt` defensive) |
+| Identificação: Data | `Production.ProductionDate` — the Job On PRODUCTION date (correction slice; **never** `SubmittedAt`, which stays submission/audit information only); absent date = "—" |
 | Identificação: CM | `Context.FrozenToolReference` (frozen CM triple) |
 | Identificação: Processo | `Context.Tool.Processo` token (live projection) |
 | Identificação: Estado | `Status` token → `PesoStatusTokens.DisplayLabel` |
@@ -141,9 +159,11 @@ directory and never prints paths.
   repo; the in-repo closed convention (`<machine>`) was followed. If the external contract later
   fixes `<line>` as a different value, only `PesoPdfNaming.TryCompose` changes (one unit-test
   surface).
-- **"Data" source:** the shared read model has no production date; `SubmittedAt` was chosen.
-  If the production date is required, it must come from a future read-model extension (no new
-  traversal was added per the slice's single-read rule).
+- **"Data" — corrected:** the first implementation used `SubmittedAt`; the correction slice
+  extends the SHARED read model minimally (`PesoProductionProjection.ProductionDate`, fed from
+  the Job On ficha date already loaded on the composition path) and the PDF now shows the
+  production date through that single read — no second traversal inside the renderer; an absent
+  production date renders "—" and `SubmittedAt` remains audit-only.
 - **Availability states:** the full P2-T08 availability vocabulary (Disponível / Ainda não
   gerado / Ficheiro em falta / Versões disponíveis) is not implemented — this slice closes
   generation + storage + outcome display only; the outcome tokens (`generated`,

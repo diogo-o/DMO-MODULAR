@@ -411,15 +411,16 @@ public sealed class P2T06RenderingTests
     }
 
     /// <summary>
-    /// P2-T08 documents slice (render part) — the Aprovar review sheet offers the Peso PDF
-    /// generation action ONLY on decided, production-bound records: an approved record renders the
-    /// <c>Gerar PDF do Peso</c> action with its outcome region; a submitted-but-undecided record
-    /// renders none (documents become available after the decision; Create's R8 seam is unchanged).
+    /// P2-T08 documents slice (render part) — the Peso PDF generation action is a CONTROL O
+    /// CREATE surface (Create owns the operational document work after the decision): the Aprovar
+    /// review sheet NEVER renders it (Approve stays focused on approve/reject/reopen, decided and
+    /// undecided alike), while the Create page for a decided, production-bound draft renders
+    /// <c>Gerar PDF do Peso</c> with its outcome region and keeps the document seam otherwise.
     /// </summary>
     [Fact]
-    public async Task PD1_TheAprovarSheetOffersThePesoPdfActionOnlyOnDecidedRecords()
+    public async Task PD1_TheDecisionSurfaceStaysFocusedAndCreateOffersThePesoPdfAction()
     {
-        // Approved + production-bound: the action IS offered.
+        // Approved + production-bound: the Approve review sheet does NOT offer the action.
         var approvedComposition = new P2T06TestComposition();
         var approvedId = await SeedSubmittedPesoAsync(approvedComposition, "PD1A");
         var approvedPeso = (await approvedComposition.Pesos.GetByIdAsync(approvedId, CancellationToken.None))!;
@@ -444,12 +445,25 @@ public sealed class P2T06RenderingTests
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var html = await response.Content.ReadAsStringAsync();
 
+            Assert.DoesNotContain("data-dmo-peso-pdf", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("Gerar PDF", html, StringComparison.Ordinal);
+        }
+
+        // The SAME decided record, opened through Controlo Create: the action IS offered there.
+        using (var factory = P2T06TestHost.ForUser(P2T06TestHost.CreateOnly(), approvedComposition))
+        using (var client = factory.CreateClient())
+        using (var response = await P2T06TestHost.GetAsync(client, $"/controlo/create?pesoId={approvedId}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var html = await response.Content.ReadAsStringAsync();
+
             Assert.Contains("data-dmo-peso-pdf=\"true\"", html, StringComparison.Ordinal);
             Assert.Contains("data-dmo-peso-pdf-outcome=\"true\"", html, StringComparison.Ordinal);
             Assert.Contains("Gerar PDF do Peso", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("data-dmo-documents-seam", html, StringComparison.Ordinal);
         }
 
-        // Submitted but UNDECIDED: the action is NOT offered (awaiting the decision).
+        // Submitted but UNDECIDED: neither surface offers the action; Create keeps the seam.
         var undecidedComposition = new P2T06TestComposition();
         var undecidedId = await SeedSubmittedPesoAsync(undecidedComposition, "PD1B");
 
@@ -461,6 +475,17 @@ public sealed class P2T06RenderingTests
             var html = await response.Content.ReadAsStringAsync();
 
             Assert.DoesNotContain("data-dmo-peso-pdf", html, StringComparison.Ordinal);
+        }
+
+        using (var factory = P2T06TestHost.ForUser(P2T06TestHost.CreateOnly(), undecidedComposition))
+        using (var client = factory.CreateClient())
+        using (var response = await P2T06TestHost.GetAsync(client, $"/controlo/create?pesoId={undecidedId}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var html = await response.Content.ReadAsStringAsync();
+
+            Assert.DoesNotContain("data-dmo-peso-pdf", html, StringComparison.Ordinal);
+            Assert.Contains("data-dmo-documents-seam", html, StringComparison.Ordinal);
         }
     }
 

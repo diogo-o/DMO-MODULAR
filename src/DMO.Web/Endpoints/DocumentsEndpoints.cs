@@ -3,9 +3,10 @@ using DMO.Application.Documents;
 namespace DMO.Web.Endpoints;
 
 /// <summary>
-/// The P2-T08 documents surface of this slice: the Peso PDF generation/storage route, gated by the
-/// OWNING workflow permission (the Controlo Approve module — document availability is presented
-/// after the decision; Create's R8 document seam stays unchanged).
+/// The P2-T08 documents surface of this slice: the Peso PDF generation/storage route, gated by
+/// the owning WORKFLOW permission of the operational work (<c>controlo-create</c> — Create owns
+/// document generation and the later email/send work, while Approve owns only the decision;
+/// Approve's surface stays focused on approve/reject/reopen).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -17,17 +18,18 @@ namespace DMO.Web.Endpoints;
 /// is shown). Every refused state is a typed 409 distinguished by its reason token; a missing
 /// Peso is a 404.</para>
 /// <para>
-/// The route is additive to the P2-T06 surface (§13.2 route-count statement stays untouched — the
-/// P2-T06 routes themselves are unchanged) and is gated by the canonical Controlo Approve policy
-/// value, never by a new policy.</para>
+/// The route is gated by the canonical Controlo Create policy value, never by a new policy; no
+/// availability registration and no destination route exists here.</para>
 /// </remarks>
 public static class DocumentsEndpoints
 {
-    /// <summary>Base path of the documents surface (inside the Controlo Approve working area).</summary>
-    public const string DocumentsBasePath = "/controlo/approve";
+    /// <summary>Base path of the documents surface (inside the Controlo Create working area, next
+    /// to the operational work it feeds).</summary>
+    public const string DocumentsBasePath = "/controlo/create";
 
-    /// <summary>The canonical policy: the Controlo Approve module policy (the owning workflow).</summary>
-    public static string Policy => ControloApproveEndpoints.Policy;
+    /// <summary>The canonical policy: the Controlo Create module policy (the owning workflow of
+    /// the operational document work).</summary>
+    public static string Policy => ControloCreateEndpoints.Policy;
 
     /// <summary>Non-static logger category marker (static types cannot be generic arguments).</summary>
     public sealed class LoggerCategory;
