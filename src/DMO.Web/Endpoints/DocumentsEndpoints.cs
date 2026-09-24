@@ -80,20 +80,18 @@ public static class DocumentsEndpoints
         });
 
         // Route — manual email send of the EXISTING Peso PDF (Create-owned operational work; the
-        // user decides when to send). The body carries ONLY an optional emailListId (the
-        // applicable configured list when configuration does not determine a single one) — no
-        // recipient address, no template value and no document content are ever accepted from the
-        // client. The transport hands the composed message out; evidence is returned; a failure
-        // never alters the approval or the peso_id.
+        // user decides when to send). NO body is accepted: the recipients and the template are
+        // resolved AUTOMATICALLY from the configured group routing (machine → group B/C →
+        // template → list) — no recipient address, no list id and no template value ever come
+        // from the client. The transport hands the composed message out; evidence is returned; a
+        // failure never alters the approval or the peso_id.
         group.MapPost("/pesos/{pesoId:guid}/peso-pdf/send", async (
             Guid pesoId,
-            SendPesoPdfRequest? body,
             IPesoPdfSendService service,
             ILogger<LoggerCategory> logger,
             CancellationToken cancellationToken) =>
         {
-            var command = new SendPesoPdfCommand(pesoId, body?.EmailListId);
-            var result = await service.SendAsync(command, cancellationToken);
+            var result = await service.SendAsync(new SendPesoPdfCommand(pesoId), cancellationToken);
 
             if (result is PesoPdfSendResult.Refused(var reason, var message))
             {
@@ -109,6 +107,7 @@ public static class DocumentsEndpoints
                         evidence.Version,
                         evidence.FileName,
                         evidence.TemplateName,
+                        evidence.MachineGroup,
                         evidence.Recipients,
                         evidence.SentAt)),
 
@@ -150,10 +149,9 @@ public static class DocumentsEndpoints
         PesoPdfSendRefusalReason.InvalidFileName => "invalid-file-name",
         PesoPdfSendRefusalReason.PdfNotGenerated => "pdf-not-generated",
         PesoPdfSendRefusalReason.DocumentReadFailed => "document-read-failed",
-        PesoPdfSendRefusalReason.EmailTemplateNotConfigured => "email-template-not-configured",
+        PesoPdfSendRefusalReason.MachineGroupUnsupported => "machine-group-unsupported",
+        PesoPdfSendRefusalReason.EmailGroupNotConfigured => "email-group-not-configured",
         PesoPdfSendRefusalReason.EmailTemplateAmbiguous => "email-template-ambiguous",
-        PesoPdfSendRefusalReason.EmailListNotConfigured => "email-list-not-configured",
-        PesoPdfSendRefusalReason.EmailListSelectionRequired => "email-list-selection-required",
         PesoPdfSendRefusalReason.EmailListNotFound => "email-list-not-found",
         PesoPdfSendRefusalReason.EmailListEmpty => "email-list-empty",
         PesoPdfSendRefusalReason.EmailTransportNotConfigured => "email-transport-not-configured",
@@ -178,17 +176,16 @@ public static class DocumentsEndpoints
         string RelativePath,
         long Bytes);
 
-    /// <summary>The manual-send request: ONLY the optional applicable configured list id.</summary>
-    public sealed record SendPesoPdfRequest(Guid? EmailListId);
-
     /// <summary>The send evidence shown to the operator: the attached existing file, the template
-    /// used and the resolved recipients (no path, no secret, no address of other users).</summary>
+    /// used, the machine group that routed it and the resolved recipients (no path, no secret, no
+    /// address of other users).</summary>
     public sealed record PesoPdfSendResponse(
         string Status,
         Guid PesoId,
         int Version,
         string FileName,
         string TemplateName,
+        string MachineGroup,
         IReadOnlyList<string> Recipients,
         DateTimeOffset SentAt);
 

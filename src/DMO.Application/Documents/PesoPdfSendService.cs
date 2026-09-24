@@ -1,45 +1,46 @@
 using DMO.Application.ControloCreate;
 using DMO.Application.Repositories;
 using DMO.Domain.Controlo;
+using DMO.Domain.Tools;
 
 namespace DMO.Application.Documents;
 
 /// <summary>
 /// The manual Peso PDF email-send service contract: Create-owned operational work after the
-/// decision. The user decides WHEN to send; the service resolves the applicable configured
-/// template/list, attaches the EXISTING generated document and hands it to the transport.
+/// decision. The user decides WHEN to send; the service resolves the group routing
+/// AUTOMATICALLY (<c>machine → group B/C → template → list → recipients</c>), attaches the
+/// EXISTING generated document and hands it to the transport.
 /// </summary>
 /// <remarks>
 /// The service NEVER regenerates or recalculates the Peso for sending (the existing document is
 /// reused); it NEVER writes to the Peso record, NEVER changes the decision and NEVER invents a
-/// recipient. No new workflow engine and no artificial blocking state exist: an unresolvable
-/// template/list or an unconfigured transport is a typed refusal, not a workflow.</remarks>
+/// recipient. No new workflow engine, no manual list selection and no artificial blocking state
+/// exist: an unresolvable group routing or an unconfigured transport is a typed refusal.</remarks>
 public interface IPesoPdfSendService
 {
-    /// <summary>Resolves the applicable configuration and sends the existing Peso PDF manually.</summary>
+    /// <summary>Resolves the group routing and sends the existing Peso PDF manually.</summary>
     Task<PesoPdfSendResult> SendAsync(SendPesoPdfCommand command, CancellationToken cancellationToken);
 }
 
 /// <summary>
-/// The manual Peso PDF send orchestration: shared Peso read → deterministic target → EXISTING
-/// file read → configured template/list resolution (no hardcoded recipients, no second source of
-/// truth) → composed message → transport → typed evidence; failures never alter the Peso.
+/// The manual Peso PDF send orchestration with the automatic group routing: shared Peso read →
+/// machine → group (B1/B2/B3 → B; C1/C2/C3 → C; anything else FAILS CLOSED) → the group's
+/// template → its associated recipient list → deterministic target → EXISTING file read →
+/// composed message → transport → typed evidence; failures never alter the Peso.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Template resolution (the ONLY applicability rule the current model fixes — Q-DOCTYPE): the
-/// <c>peso</c> template wins; absent that, a <c>generic</c> (document_type NULL) template is used.
-/// If more than one template still applies at that precedence, the send refuses
-/// <c>email-template-ambiguous</c> (the model fixes no selection-precedence beyond applicability —
-/// delta §9.4/§10.5). List resolution: an OPED operator selection is honoured; with none, exactly
-/// one configured list is used automatically, and more than one requires an explicit choice
-/// (<c>email-list-selection-required</c>) — the app avoids re-asking for what configuration
-/// already determines but never guesses among several lists.</para>
+/// The routing is the small, concrete one of this slice (no generic rule architecture): the
+/// group's template is the single configured template with <c>machine_group = group</c>; its
+/// recipients are the addresses of its associated <c>email_list</c>. Zero templates of the group
+/// (or a template without its list — the Definições surface already refuses incomplete routings,
+/// this check is the defensive backstop) → <c>email-group-not-configured</c>; more than one →
+/// <c>email-template-ambiguous</c> (no precedence rule exists in the model).</para>
 /// <para>
 /// The subject/body travel VERBATIM (no placeholder syntax exists in this repository — Q-PLACE /
-/// delta §10.4, so no substitution is performed). The evidence is returned and recorded as
-/// status-level application logging only: the current persistence model has no send table and no
-/// migration is authorized, so no send ROW is written.</para>
+/// delta §10.4) and the evidence is returned plus recorded as status-level application logging
+/// only: the current persistence model has no send table and no migration is authorized, so no
+/// send ROW is written.</para>
 /// </remarks>
 public sealed class PesoPdfSendService : IPesoPdfSendService
 {
@@ -131,7 +132,35 @@ public sealed class PesoPdfSendService : IPesoPdfSendService
                 "Este Peso não está associado a uma produção; não existe documento para enviar.");
         }
 
-        // 5. Deterministic target (closed convention); fails closed on unsafe values.
+        // 5. Machine → group resolution (exact, fail closed): B1/B2/B3 → B; C1/C2/C3 → C; any
+        //    machine outside the set is refused without guessing.
+        var group = EmailMachineGroupTokens.FromMachine(MachineCode.Parse(production.Machine));
+        if (group is not { } resolvedGroup)
+        {
+            return Refuse(
+                PesoPdfSendRefusalReason.MachineGroupUnsupported,
+                $"A máquina '{production.Machine}' não pertence a nenhum grupo operacional de " +
+                "envio (grupo B: B1/B2/B3; grupo C: C1/C2/C3); nada foi enviado.");
+        }
+
+        var groupToken = EmailMachineGroupTokens.ToToken(resolvedGroup);
+
+        // 6. The group's template — the small concrete routing of this slice.
+        var template = await ResolveGroupTemplateAsync(resolvedGroup, groupToken, cancellationToken);
+        if (template.Refusal is not null)
+        {
+            return template.Refusal;
+        }
+
+        // 7. The template's associated recipients (Definições is the single recipient source).
+        var recipients = await ResolveGroupRecipientsAsync(
+            template.Template!, groupToken, cancellationToken);
+        if (recipients.Refusal is not null)
+        {
+            return recipients.Refusal;
+        }
+
+        // 8. Deterministic target (closed convention); fails closed on unsafe values.
         if (!PesoPdfNaming.TryCompose(
                 production.Reference,
                 production.ProductionNumber,
@@ -145,7 +174,7 @@ public sealed class PesoPdfSendService : IPesoPdfSendService
                 "nada foi enviado.");
         }
 
-        // 6. The EXISTING generated document — reused, never regenerated/recalculated.
+        // 9. The EXISTING generated document — reused, never regenerated/recalculated.
         var attachment = await _files.ReadAsync(
             settings.BaseDirectory,
             target.RelativeDirectory,
@@ -167,22 +196,7 @@ public sealed class PesoPdfSendService : IPesoPdfSendService
                 "Não foi possível ler o PDF existente; repita ou verifique o diretório em Definições.");
         }
 
-        // 7. Template resolution — the configured data is the single source of truth.
-        var template = await ResolveTemplateAsync(cancellationToken);
-        if (template.Refusal is not null)
-        {
-            return template.Refusal;
-        }
-
-        // 8. Recipient resolution — from the configured lists only (never hardcoded; the operator
-        //    chooses only when configuration does not determine it).
-        var recipients = await ResolveRecipientsAsync(command.EmailListId, cancellationToken);
-        if (recipients.Refusal is not null)
-        {
-            return recipients.Refusal;
-        }
-
-        // 9. Compose the message (subject/body verbatim; the existing PDF as the attachment).
+        // 10. Compose the message (subject/body verbatim; the existing PDF as the attachment).
         var message = new EmailMessage(
             To: recipients.Addresses!,
             Subject: template.Template!.Subject,
@@ -190,7 +204,7 @@ public sealed class PesoPdfSendService : IPesoPdfSendService
             AttachmentFileName: target.FileName,
             AttachmentBytes: attachment.Bytes);
 
-        // 10. Transport — a failure returns a typed refusal, never a record/decision change.
+        // 11. Transport — a failure returns a typed refusal, never a record/decision change.
         var delivered = await _transport.SendAsync(message, cancellationToken);
 
         return delivered.State switch
@@ -200,6 +214,7 @@ public sealed class PesoPdfSendService : IPesoPdfSendService
                 sheet.Version,
                 target.FileName,
                 template.Template.Name,
+                groupToken,
                 recipients.Addresses!,
                 DateTimeOffset.UtcNow)),
 
@@ -214,94 +229,76 @@ public sealed class PesoPdfSendService : IPesoPdfSendService
     }
 
     /// <summary>
-    /// Resolves the applicable configured template: the <c>peso</c> template wins; otherwise a
-    /// generic (document_type NULL) template is used. More than one template at the winning
-    /// precedence is AMBIGUOUS (the model fixes no further precedence — delta §9.4/§10.5).
+    /// Resolves the single template of the group (the concrete routing: one template per group;
+    /// the model fixes no selection precedence beyond the group). Zero templates → the typed
+    /// informative <c>email-group-not-configured</c>; more than one → ambiguous.
     /// </summary>
-    private async Task<TemplateResolution> ResolveTemplateAsync(CancellationToken cancellationToken)
+    private async Task<TemplateResolution> ResolveGroupTemplateAsync(
+        EmailMachineGroup group,
+        string groupToken,
+        CancellationToken cancellationToken)
     {
-        var all = await _templates.ListAsync(cancellationToken);
-
-        var peso = all
-            .Where(template => template.DocumentType == EmailTemplateDocumentType.Peso)
-            .ToList();
-        var generic = all
-            .Where(template => template.DocumentType is null)
+        var templates = (await _templates.ListAsync(cancellationToken))
+            .Where(template => template.MachineGroup == group)
             .ToList();
 
-        if (peso.Count == 1)
-        {
-            return new TemplateResolution(peso[0], null);
-        }
-
-        if (peso.Count > 1)
+        if (templates.Count == 0)
         {
             return new TemplateResolution(
                 null,
-                Refuse(PesoPdfSendRefusalReason.EmailTemplateAmbiguous,
-                    "Existem vários templates 'peso' configurados e o modelo atual não fixa " +
-                    "precedência entre eles; deixe exatamente um template 'peso' (ou um genérico)."));
+                Refuse(
+                    PesoPdfSendRefusalReason.EmailGroupNotConfigured,
+                    $"O grupo {groupToken} (máquinas {MachinesOf(group)}) não tem template de " +
+                    "email configurado; defina o Template do grupo e a lista de destinatários " +
+                    "associada em Definições."));
         }
 
-        return generic.Count == 1
-            ? new TemplateResolution(generic[0], null)
-            : new TemplateResolution(
+        if (templates.Count > 1)
+        {
+            return new TemplateResolution(
                 null,
-                Refuse(PesoPdfSendRefusalReason.EmailTemplateNotConfigured,
-                    "Não existe template de email aplicável ao Peso (defina um template 'peso' ou " +
-                    "genérico em Definições)."));
+                Refuse(
+                    PesoPdfSendRefusalReason.EmailTemplateAmbiguous,
+                    $"Existem vários templates configurados para o grupo {groupToken} e o modelo " +
+                    "não fixa precedência entre eles; deixe exatamente um template por grupo."));
+        }
+
+        return new TemplateResolution(templates[0], null);
     }
 
     /// <summary>
-    /// Resolves the recipient set from the configured lists: an OPED selection is honoured; with
-    /// none, exactly one configured list is used automatically (the app avoids re-asking for what
-    /// configuration determines); more than one list requires an explicit choice. Addresses are
-    /// deterministic (address ASC). An empty list is refused — no address is invented.
+    /// Resolves the recipients of the group's template: the addresses of its associated
+    /// configured list (deterministic address ASC). A template without its list (defensive — the
+    /// Definições surface refuses incomplete routings) is <c>email-group-not-configured</c>; a
+    /// missing list is <c>email-list-not-found</c>; an empty list is refused — no address is
+    /// invented.
     /// </summary>
-    private async Task<RecipientResolution> ResolveRecipientsAsync(
-        Guid? emailListId,
+    private async Task<RecipientResolution> ResolveGroupRecipientsAsync(
+        EmailTemplate template,
+        string groupToken,
         CancellationToken cancellationToken)
     {
-        var lists = await _lists.ListAsync(cancellationToken);
-
-        EmailList? chosen;
-        if (emailListId is { } selectedId)
-        {
-            chosen = lists.FirstOrDefault(list => list.EmailListId.Value == selectedId);
-
-            return chosen is null
-                ? new RecipientResolution(
-                    Refuse(PesoPdfSendRefusalReason.EmailListNotFound,
-                        "A lista de destinatários selecionada não existe; verifique Definições."),
-                    null)
-                : CheckRecipients(chosen);
-        }
-
-        var remaining = lists.Count;
-
-        if (remaining == 0)
+        if (template.EmailListId is not { } listId)
         {
             return new RecipientResolution(
-                Refuse(PesoPdfSendRefusalReason.EmailListNotConfigured,
-                    "Não existe lista de destinatários configurada; defina uma em Definições " +
-                    "(nada é inventado)."),
+                Refuse(
+                    PesoPdfSendRefusalReason.EmailGroupNotConfigured,
+                    $"O template do grupo {groupToken} não tem lista de destinatários associada; " +
+                    "associe a lista em Controlo_Create → Definições."),
                 null);
         }
 
-        if (remaining > 1)
+        var list = await _lists.GetByIdAsync(listId.Value, cancellationToken);
+        if (list is null)
         {
             return new RecipientResolution(
-                Refuse(PesoPdfSendRefusalReason.EmailListSelectionRequired,
-                    "Existem várias listas de destinatários configuradas; selecione a lista " +
-                    "aplicável (a configuração atual não determina automaticamente uma única)."),
+                Refuse(
+                    PesoPdfSendRefusalReason.EmailListNotFound,
+                    $"A lista de destinatários associada ao template do grupo {groupToken} já não " +
+                    "existe; verifique Definições."),
                 null);
         }
 
-        return CheckRecipients(lists[0]);
-    }
-
-    private static RecipientResolution CheckRecipients(EmailList list)
-    {
         var addresses = list.Recipients
             .Select(recipient => recipient.Address)
             .OrderBy(address => address, StringComparer.Ordinal)
@@ -310,13 +307,22 @@ public sealed class PesoPdfSendService : IPesoPdfSendService
         if (addresses.Count == 0)
         {
             return new RecipientResolution(
-                Refuse(PesoPdfSendRefusalReason.EmailListEmpty,
-                    $"A lista '{list.Name}' não tem destinatários; acrescente destinatários em Definições."),
+                Refuse(
+                    PesoPdfSendRefusalReason.EmailListEmpty,
+                    $"A lista '{list.Name}' (grupo {groupToken}) não tem destinatários; acrescente " +
+                    "destinatários em Definições."),
                 null);
         }
 
         return new RecipientResolution(null, addresses);
     }
+
+    private static string MachinesOf(EmailMachineGroup group) => group switch
+    {
+        EmailMachineGroup.B => "B1/B2/B3",
+        EmailMachineGroup.C => "C1/C2/C3",
+        _ => throw new ArgumentOutOfRangeException(nameof(group), group, "Unknown email machine group."),
+    };
 
     private static PesoPdfSendResult Refuse(PesoPdfSendRefusalReason reason, string message) =>
         new PesoPdfSendResult.Refused(reason, message);

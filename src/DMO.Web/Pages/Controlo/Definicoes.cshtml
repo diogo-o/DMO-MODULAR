@@ -105,21 +105,25 @@
         </form>
     </div>
 
-    @* ---- Section 5 — Templates de email (subject/body/document type; text verbatim, Q-PLACE) ---- *@
+    @* ---- Section 5 — Templates de email (subject/body/document type; B/C group routing with the
+          associated recipient list — P2-T08 email slice: machine → group → template → list) ---- *@
     <div class="dmo-controlo__region" data-dmo-controlo-region="email-templates" aria-label="Templates de email">
         <h2 class="dmo-controlo__section-title">Templates de email</h2>
         <div class="dmo-controlo__settings-scroll" role="region" tabindex="0" aria-label="Templates de email">
             <table class="dmo-controlo__settings-table" data-dmo-templates-table="true">
                 <thead>
-                    <tr><th>Nome</th><th>Assunto</th><th>Tipo de documento</th><th>Versão</th><th>Eliminar</th></tr>
+                    <tr><th>Nome</th><th>Assunto</th><th>Tipo de documento</th><th>Grupo de máquinas</th><th>Lista de destinatários</th><th>Versão</th><th>Eliminar</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var template in Model.EmailTemplates)
                     {
+                        var associatedList = Model.EmailLists.FirstOrDefault(list => list.EmailListId == template.EmailListId?.Value);
                         <tr data-dmo-template-row="@template.EmailTemplateId">
                             <td data-dmo-template-name="@template.EmailTemplateId">@template.Name</td>
                             <td>@template.Subject</td>
                             <td>@(template.DocumentType is { } type ? type.ToString() : "— (genérico)")</td>
+                            <td>@(template.MachineGroup is { } group ? group.ToString() : "—")</td>
+                            <td>@(associatedList?.Name ?? "—")</td>
                             <td data-dmo-template-version="@template.EmailTemplateId">@template.Version</td>
                             <td>
                                 <button class="dmo-controlo__button" type="button"
@@ -149,6 +153,24 @@
                 <option value="pegamentos">Pegamentos</option>
                 <option value="resumo">Resumo</option>
             </select>
+            <label class="dmo-controlo__label" for="dmo-controlo-template-group">Grupo de máquinas (envio do Peso)</label>
+            <select class="dmo-controlo__input dmo-controlo__input--select" id="dmo-controlo-template-group" data-dmo-template-new-group="true">
+                <option value="">— sem grupo —</option>
+                <option value="B">B (B1/B2/B3)</option>
+                <option value="C">C (C1/C2/C3)</option>
+            </select>
+            <label class="dmo-controlo__label" for="dmo-controlo-template-list">Lista de destinatários (do grupo)</label>
+            <select class="dmo-controlo__input dmo-controlo__input--select" id="dmo-controlo-template-list" data-dmo-template-new-list="true">
+                <option value="">— sem lista —</option>
+                @foreach (var list in Model.EmailLists)
+                {
+                    <option value="@list.EmailListId">@list.Name (@list.RecipientCount)</option>
+                }
+            </select>
+            <span class="dmo-controlo__pdf-hint" data-dmo-template-routing-hint="true">
+                Um grupo com template precisa da lista de destinatários associada (e vice-versa);
+                o envio do Peso resolve B1/B2/B3 → B e C1/C2/C3 → C automaticamente.
+            </span>
             <button class="dmo-controlo__button" type="button" data-dmo-template-create="true">Criar template</button>
             <div data-dmo-template-edit-region="true" hidden>
                 <input type="hidden" data-dmo-template-edit-id="true" />

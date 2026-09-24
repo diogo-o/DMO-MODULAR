@@ -315,6 +315,7 @@ internal static class P2T05ProductionScan
         "src/DMO.Infrastructure/Configuration/ConfigurationCalculationConfiguration.cs",
         "src/DMO.Infrastructure/Migrations/20260923045054_ControloCreateDomain",
         "src/DMO.Infrastructure/Migrations/20260923122429_GlassDensitySettings",
+        "src/DMO.Infrastructure/Migrations/20260924182527_EmailTemplateGroupRouting",
         "src/DMO.Web/Pages/Controlo/",
         "src/DMO.Web/Endpoints/Controlo",
         "src/DMO.Web/wwwroot/css/dmo-controlo.css",

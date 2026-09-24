@@ -273,12 +273,12 @@
         <div class="dmo-controlo__state" data-dmo-controlo-state="true" hidden></div>
     </div>
 
-    @* ---- R8 — Documents region: Peso PDF generation + manual email send for decided,
-          production-bound records (P2-T08 slice: Create owns the operational document work after
+    @* ---- R8 — Documents region: Peso PDF generation + automatic group-email send for decided,
+          production-bound records (P2-T08 slices: Create owns the operational document work after
           the decision; Approve owns only the decision). The actions post to the documents routes
           through the page-owned adapter and never show filesystem paths, only the relative
-          convention target; the configured Definições lists/template are the only recipient/
-          template source and the send reveals next to the PDF output. *@
+          convention target. The recipients/template are resolved AUTOMATICALLY from the machine's
+          group (B1/B2/B3 → B; C1/C2/C3 → C) — no manual list selection, no dropdown. *@
     <div class="dmo-controlo__region" data-dmo-controlo-region="documents" aria-label="Documentos">
         @if (Model.CanGeneratePesoPdf)
         {
@@ -293,44 +293,16 @@
                 <div class="dmo-controlo__pdf-outcome" data-dmo-peso-pdf-outcome="true" hidden></div>
 
                 @* Send region — revealed by the adapter once a PDF exists (gerado/já disponível);
-                   the user decides WHEN to send. Lists come from the configured Definições data;
-                   a single list is applied automatically (no re-asking), several require the
-                   operator's selection of the applicable one; zero lists = state info. *@
-                <div class="dmo-controlo__pdf-send" data-dmo-peso-pdf-send-region="true" hidden
-                     data-dmo-peso-pdf-list-value="@(Model.EmailLists.Count == 1 ? Model.EmailLists[0].EmailListId.ToString() : string.Empty)">
+                   the user decides WHEN to send. No list selection: the machine's group
+                   (B/C) resolves the template and its associated recipients automatically. *@
+                <div class="dmo-controlo__pdf-send" data-dmo-peso-pdf-send-region="true" hidden>
                     <span class="dmo-controlo__pdf-hint" data-dmo-peso-pdf-send-hint="true">
-                        Enviar o PDF por email — destinatários e template segundo as Definições.
+                        Enviar o PDF por email às destinatários do grupo @(Model.PdfMachineGroup ?? "…") — definidos em Definições.
                     </span>
-                    @if (Model.EmailLists.Count > 1)
-                    {
-                        <label class="dmo-controlo__label" for="dmo-controlo-pdf-list">Lista de destinatários</label>
-                        <select class="dmo-controlo__input dmo-controlo__input--select"
-                                id="dmo-controlo-pdf-list"
-                                data-dmo-peso-pdf-list="true">
-                            <option value="" selected>— selecionar lista —</option>
-                            @foreach (var list in Model.EmailLists)
-                            {
-                                <option value="@list.EmailListId">@list.Name (@list.RecipientCount)</option>
-                            }
-                        </select>
-                    }
-                    else if (Model.EmailLists.Count == 1)
-                    {
-                        <span class="dmo-controlo__pdf-hint" data-dmo-peso-pdf-list-label="true">
-                            Lista: @Model.EmailLists[0].Name (@Model.EmailLists[0].RecipientCount)
-                        </span>
-                    }
-                    else
-                    {
-                        <span class="dmo-controlo__pdf-hint" data-dmo-peso-pdf-list-label="true">
-                            Sem listas de destinatários configuradas em Definições.
-                        </span>
-                    }
                     <button type="button"
                             class="dmo-controlo__button"
                             data-dmo-peso-pdf-send="true"
-                            data-dmo-peso-pdf-send-pending="A enviar…"
-                            disabled="@(Model.EmailLists.Count == 0 ? "disabled" : null)">Enviar PDF por email</button>
+                            data-dmo-peso-pdf-send-pending="A enviar…">Enviar PDF por email</button>
                     <div class="dmo-controlo__pdf-outcome" data-dmo-peso-pdf-send-outcome="true" hidden></div>
                 </div>
             </div>

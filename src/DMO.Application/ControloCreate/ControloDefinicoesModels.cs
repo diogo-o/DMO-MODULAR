@@ -97,12 +97,21 @@ public sealed record UpdateGlassDensityCommand(string Processo, decimal DensityG
 // Email templates (§14)
 // ---------------------------------------------------------------------------------------------
 
-/// <summary>Creates an email template (name, subject, body, optional document type).</summary>
+/// <summary>
+/// Creates an email template: name, subject, body, optional document type and the OPTIONAL Peso
+/// group routing (<c>MachineGroup</c> B/C + the configured recipient list whose addresses are
+/// the template's recipients — P2-T08 email slice: machine → group → template → list →
+/// recipients). The operator configures "Template B + emails associados" and "Template C + emails
+/// associados" here; both members of the routing travel TOGETHER (a template with a group but no
+/// list, or a list but no group, is an incomplete routing).
+/// </summary>
 public sealed record CreateEmailTemplateCommand(
     string Name,
     string Subject,
     string Body,
-    string? DocumentType);
+    string? DocumentType,
+    string? MachineGroup,
+    Guid? EmailListId);
 
 /// <summary>Updates an email template, version-guarded.</summary>
 public sealed record UpdateEmailTemplateCommand(
@@ -111,7 +120,9 @@ public sealed record UpdateEmailTemplateCommand(
     string Name,
     string Subject,
     string Body,
-    string? DocumentType);
+    string? DocumentType,
+    string? MachineGroup,
+    Guid? EmailListId);
 
 /// <summary>Deletes an email template with explicit confirmation (§14.2).</summary>
 public sealed record DeleteEmailTemplateCommand(

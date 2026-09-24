@@ -239,6 +239,10 @@ public static class ControloDefinicoesEndpoints
                             template.DocumentType is { } type
                                 ? EmailTemplateDocumentTypeTokens.ToToken(type)
                                 : null,
+                            template.MachineGroup is { } group
+                                ? EmailMachineGroupTokens.ToToken(group)
+                                : null,
+                            template.EmailListId?.Value,
                             template.Version))
                         .ToArray()))
                 : MapResult(result);
@@ -259,7 +263,9 @@ public static class ControloDefinicoesEndpoints
                 body.Name ?? string.Empty,
                 body.Subject ?? string.Empty,
                 body.Body ?? string.Empty,
-                body.DocumentType);
+                body.DocumentType,
+                body.MachineGroup,
+                body.EmailListId);
 
             return await ExecuteAsync(
                 token => service.CreateEmailTemplateAsync(command, token),
@@ -288,6 +294,10 @@ public static class ControloDefinicoesEndpoints
                     template.DocumentType is { } type
                         ? EmailTemplateDocumentTypeTokens.ToToken(type)
                         : null,
+                    template.MachineGroup is { } group
+                        ? EmailMachineGroupTokens.ToToken(group)
+                        : null,
+                    template.EmailListId?.Value,
                     template.Version))
                 : MapResult(result);
         });
@@ -310,7 +320,9 @@ public static class ControloDefinicoesEndpoints
                 body.Name ?? string.Empty,
                 body.Subject ?? string.Empty,
                 body.Body ?? string.Empty,
-                body.DocumentType);
+                body.DocumentType,
+                body.MachineGroup,
+                body.EmailListId);
 
             return await ExecuteAsync(
                 token => service.UpdateEmailTemplateAsync(command, token),
@@ -464,6 +476,10 @@ public static class ControloDefinicoesEndpoints
                     template.DocumentType is { } type
                         ? EmailTemplateDocumentTypeTokens.ToToken(type)
                         : null,
+                    template.MachineGroup is { } group
+                        ? EmailMachineGroupTokens.ToToken(group)
+                        : null,
+                    template.EmailListId?.Value,
                     template.Version))
                 .ToArray())),
 
@@ -475,6 +491,10 @@ public static class ControloDefinicoesEndpoints
             template.DocumentType is { } type
                 ? EmailTemplateDocumentTypeTokens.ToToken(type)
                 : null,
+            template.MachineGroup is { } group
+                ? EmailMachineGroupTokens.ToToken(group)
+                : null,
+            template.EmailListId?.Value,
             template.Version)),
 
         SettingsResult.EmailTemplateCreated(var id, var version) => Results.Created(
@@ -590,12 +610,15 @@ public static class ControloDefinicoesEndpoints
     /// <summary>Route 16 update response.</summary>
     public sealed record EmailListUpdatedResponse(Guid EmailListId, int Version);
 
-    /// <summary>Route 17 create-template carrier (verbatim text; optional document type).</summary>
+    /// <summary>Route 17 create-template carrier (verbatim text; optional document type and the
+    /// optional P2-T08 email group routing: machine group B/C + the configured recipient list).</summary>
     public sealed record CreateEmailTemplateRequest(
         string? Name,
         string? Subject,
         string? Body,
-        string? DocumentType);
+        string? DocumentType,
+        string? MachineGroup,
+        Guid? EmailListId);
 
     /// <summary>Route 17 update-template carrier.</summary>
     public sealed record UpdateEmailTemplateRequest(
@@ -603,7 +626,9 @@ public static class ControloDefinicoesEndpoints
         string? Name,
         string? Subject,
         string? Body,
-        string? DocumentType);
+        string? DocumentType,
+        string? MachineGroup,
+        Guid? EmailListId);
 
     /// <summary>Route 17 list response.</summary>
     public sealed record EmailTemplatesResponse(IReadOnlyList<EmailTemplateItemResponse> Templates);
@@ -615,6 +640,8 @@ public static class ControloDefinicoesEndpoints
         string Subject,
         string Body,
         string? DocumentType,
+        string? MachineGroup,
+        Guid? EmailListId,
         int Version);
 
     /// <summary>Route 17 read response.</summary>
@@ -624,6 +651,8 @@ public static class ControloDefinicoesEndpoints
         string Subject,
         string Body,
         string? DocumentType,
+        string? MachineGroup,
+        Guid? EmailListId,
         int Version);
 
     /// <summary>Route 17 create response.</summary>

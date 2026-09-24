@@ -1,4 +1,5 @@
 using DMO.Application.Tools;
+using DMO.Domain.Controlo;
 
 namespace DMO.Application.ControloCreate;
 
@@ -50,6 +51,12 @@ public static class ControloDefinicoesValidationErrors
 
     /// <summary>The template document type is not one of peso/pegamentos/resumo.</summary>
     public const string DocumentTypeUnknown = "DOCUMENT_TYPE_UNKNOWN";
+
+    /// <summary>The template machine group is not one of B/C (P2-T08 email slice routing).</summary>
+    public const string MachineGroupUnknown = "MACHINE_GROUP_UNKNOWN";
+
+    /// <summary>The template references an email list that does not exist (routing P2-T08 email slice).</summary>
+    public const string EmailListNotFound = "EMAIL_LIST_NOT_FOUND";
 
     /// <summary>The delete was not explicitly confirmed.</summary>
     public const string DeleteNotConfirmed = "DELETE_NOT_CONFIRMED";
@@ -132,7 +139,12 @@ public static class ControloDefinicoesValidator
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        return ValidateTemplate(command.Name, command.Subject, command.Body, command.DocumentType);
+        return ValidateTemplate(
+            command.Name,
+            command.Subject,
+            command.Body,
+            command.DocumentType,
+            command.MachineGroup);
     }
 
     /// <summary>Validates the email-template update command.</summary>
@@ -144,7 +156,8 @@ public static class ControloDefinicoesValidator
             command.Name,
             command.Subject,
             command.Body,
-            command.DocumentType).ToList();
+            command.DocumentType,
+            command.MachineGroup).ToList();
 
         if (command.EmailTemplateId == Guid.Empty)
         {
@@ -219,7 +232,8 @@ public static class ControloDefinicoesValidator
         string name,
         string subject,
         string body,
-        string? documentType)
+        string? documentType,
+        string? machineGroup = null)
     {
         var errors = new List<string>();
 
@@ -251,6 +265,11 @@ public static class ControloDefinicoesValidator
             {
                 errors.Add(ControloDefinicoesValidationErrors.DocumentTypeUnknown);
             }
+        }
+
+        if (machineGroup is not null && EmailMachineGroupTokens.Parse(machineGroup) is null)
+        {
+            errors.Add(ControloDefinicoesValidationErrors.MachineGroupUnknown);
         }
 
         return errors;

@@ -15,7 +15,10 @@ internal static class PesoPdfFixtures
     public static readonly DateTimeOffset SubmittedAt = new(2026, 9, 21, 10, 30, 0, TimeSpan.Zero);
 
     /// <summary>A decided, production-bound sheet with <paramref name="rowCount"/> frozen rows.</summary>
-    public static PesoSheetReadModel DecidedSheet(int rowCount = 4, PesoStatus status = PesoStatus.Aprovado) =>
+    public static PesoSheetReadModel DecidedSheet(
+        int rowCount = 4,
+        PesoStatus status = PesoStatus.Aprovado,
+        string machine = "B1") =>
         new(
             PesoId: new Guid("11111111-1111-1111-1111-111111111111"),
             Version: 2,
@@ -40,7 +43,7 @@ internal static class PesoPdfFixtures
             Production: new PesoProductionProjection(
                 Reference: "REF-X",
                 ProductionNumber: "2026-001",
-                Machine: "B1",
+                Machine: machine,
                 ProductionDate: new DateOnly(2026, 9, 19)),
             CreatedByUserId: new Guid("44444444-4444-4444-4444-444444444444"),
             CreatedAt,

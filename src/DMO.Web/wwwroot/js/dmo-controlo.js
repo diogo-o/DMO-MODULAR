@@ -449,6 +449,8 @@ if (!window.dmoControlo) {
             root.querySelector("[data-dmo-template-new-subject]").value = template.subject;
             root.querySelector("[data-dmo-template-new-body]").value = template.body;
             root.querySelector("[data-dmo-template-new-type]").value = template.documentType || "";
+            root.querySelector("[data-dmo-template-new-group]").value = template.machineGroup || "";
+            root.querySelector("[data-dmo-template-new-list]").value = template.emailListId || "";
             root.querySelector("[data-dmo-template-edit-id]").value = template.emailTemplateId;
             root.querySelector("[data-dmo-template-edit-version]").value = template.version;
             root.querySelector("[data-dmo-template-edit-region]").hidden = false;
@@ -493,7 +495,11 @@ if (!window.dmoControlo) {
         name: value(root, "[data-dmo-template-new-name]"),
         subject: value(root, "[data-dmo-template-new-subject]"),
         body: value(root, "[data-dmo-template-new-body]"),
-        documentType: nullableText(value(root, "[data-dmo-template-new-type]"))
+        documentType: nullableText(value(root, "[data-dmo-template-new-type]")),
+        // P2-T08 email slice: the B/C group routing with its associated recipient list
+        // (machine → group → template → list; both members travel together).
+        machineGroup: nullableText(value(root, "[data-dmo-template-new-group]")),
+        emailListId: nullableGuid(value(root, "[data-dmo-template-new-list]"))
       };
     }
 
@@ -504,6 +510,10 @@ if (!window.dmoControlo) {
     }
 
     function nullableText(text) {
+      return text === null || text === undefined || text.trim() === "" ? null : text.trim();
+    }
+
+    function nullableGuid(text) {
       return text === null || text === undefined || text.trim() === "" ? null : text.trim();
     }
 
@@ -587,44 +597,28 @@ if (!window.dmoControlo) {
     }
 
     /**
-     * Wires the manual email send of the EXISTING Peso PDF (P2-T08 documents slice): posts ONLY
-     * the canonical peso_id + the applicable configured list id (when the configuration does not
-     * determine a single list). The backend resolves the template/list exclusively from the
-     * Definições data, attaches the existing PDF and NEVER regenerates it. The outcome shows the
-     * evidence (file, template, recipient count); typed refusals enter the page-owned errors
-     * presentation; pending state prevents duplicate sends; no reload is performed.
+     * Wires the automatic group-email send of the EXISTING Peso PDF (P2-T08 email slices): posts
+     * ONLY the canonical peso_id (no recipient/list/template value ever leaves the page — the
+     * backend resolves machine → group B/C → template → associated recipients from the
+     * Definições data) and attaches the existing PDF, NEVER regenerating it. The outcome shows
+     * the evidence (file, group, template, recipient count); typed refusals enter the page-owned
+     * errors presentation; pending state prevents duplicate sends; no reload is performed.
      */
     function wirePesoPdfSend(root) {
       var sendButton = root.querySelector("[data-dmo-peso-pdf-send]");
       var sendOutcome = root.querySelector("[data-dmo-peso-pdf-send-outcome]");
-      var sendRegion = root.querySelector("[data-dmo-peso-pdf-send-region]");
       if (!sendButton || !sendOutcome) { return; }
 
       sendButton.addEventListener("click", function () {
         var state = anchors(root);
         if (!state.pesoId || sendButton.disabled) { return; }
 
-        var emailListId = null;
-        if (sendRegion && sendRegion.getAttribute("data-dmo-peso-pdf-list-value")) {
-          emailListId = sendRegion.getAttribute("data-dmo-peso-pdf-list-value");
-        } else {
-          var select = root.querySelector("[data-dmo-peso-pdf-list]");
-          if (select) {
-            emailListId = select.value || null;
-            if (!emailListId) {
-              renderErrors(root, { errors: ["Selecione a lista de destinatários aplicável."] });
-              return;
-            }
-          }
-        }
-
         var original = sendButton.textContent;
         var pending = sendButton.getAttribute("data-dmo-peso-pdf-send-pending") || original;
         sendButton.textContent = pending;
         sendButton.disabled = true;
 
-        var payload = emailListId ? { emailListId: emailListId } : {};
-        api(basePath + "/pesos/" + state.pesoId + "/peso-pdf/send", "POST", payload).then(function (response) {
+        api(basePath + "/pesos/" + state.pesoId + "/peso-pdf/send", "POST", null).then(function (response) {
           sendButton.textContent = original;
           sendButton.disabled = false;
 
@@ -639,8 +633,8 @@ if (!window.dmoControlo) {
           sendOutcome.textContent = "";
           var paragraph = document.createElement("p");
           var recipientCount = payload.recipients ? payload.recipients.length : 0;
-          paragraph.textContent = "Email enviado para " + recipientCount + " destinatário(s) — " +
-            "ficheiro " + payload.fileName + " — template " + payload.templateName + ".";
+          paragraph.textContent = "Email enviado para " + recipientCount + " destinatário(s) do grupo " +
+            payload.machineGroup + " — ficheiro " + payload.fileName + " — template " + payload.templateName + ".";
           sendOutcome.appendChild(paragraph);
         });
       });

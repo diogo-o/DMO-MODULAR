@@ -338,7 +338,7 @@ public sealed class ControloSettingsRepositoryIntegrationTests
             var services = Definicoes(context);
 
             var created = Assert.IsType<SettingsResult.EmailTemplateCreated>(await services.CreateEmailTemplateAsync(
-                new CreateEmailTemplateCommand($"tpl-{token}", $"subj-{token}", body, "peso"),
+                new CreateEmailTemplateCommand($"tpl-{token}", $"subj-{token}", body, "peso", null, null),
                 CancellationToken.None));
             Assert.Equal(1, created.Version);
 
@@ -350,7 +350,7 @@ public sealed class ControloSettingsRepositoryIntegrationTests
 
             // A null document type is the generic template: stored null.
             var generic = Assert.IsType<SettingsResult.EmailTemplateCreated>(await services.CreateEmailTemplateAsync(
-                new CreateEmailTemplateCommand($"tpl-{token}-generic", $"subj-{token}-g", "corpo", null),
+                new CreateEmailTemplateCommand($"tpl-{token}-generic", $"subj-{token}-g", "corpo", null, null, null),
                 CancellationToken.None));
             var genericFound = Assert.IsType<SettingsResult.EmailTemplateFound>(await services.GetEmailTemplateAsync(
                 generic.EmailTemplateId, CancellationToken.None)).Template;
@@ -358,7 +358,7 @@ public sealed class ControloSettingsRepositoryIntegrationTests
 
             // An unknown document type is refused before any write.
             var refused = Assert.IsType<SettingsResult.ValidationFailed>(await services.CreateEmailTemplateAsync(
-                new CreateEmailTemplateCommand($"tpl-{token}-bad", "s", "b", "x"), CancellationToken.None));
+                new CreateEmailTemplateCommand($"tpl-{token}-bad", "s", "b", "x", null, null), CancellationToken.None));
             Assert.Contains(ControloDefinicoesValidationErrors.DocumentTypeUnknown, refused.Errors);
         }
         finally
@@ -403,7 +403,7 @@ public sealed class ControloSettingsRepositoryIntegrationTests
 
             // ---- Templates.
             var templateId = Assert.IsType<SettingsResult.EmailTemplateCreated>(await services.CreateEmailTemplateAsync(
-                new CreateEmailTemplateCommand($"tpl-{token}", "s", "b", null), CancellationToken.None)).EmailTemplateId;
+                new CreateEmailTemplateCommand($"tpl-{token}", "s", "b", null, null, null), CancellationToken.None)).EmailTemplateId;
 
             var templateUnconfirmed = Assert.IsType<SettingsResult.ValidationFailed>(await services.DeleteEmailTemplateAsync(
                 new DeleteEmailTemplateCommand(templateId, ExpectedVersion: 1, DeleteConfirmed: false),

@@ -104,22 +104,24 @@ public sealed class ControloDefinicoesValidatorTests
     }
 
     /// <summary>
-    /// SET7 (AC-F5) — the email template carries name, subject, body and an optional document type:
-    /// each blank fact is its own exact token, a fourth document type is
-    /// <c>DOCUMENT_TYPE_UNKNOWN</c>, and <c>null</c> plus the three settled families validate clean.
+    /// SET7 (AC-F5) — the email template carries name, subject, body, an optional document type
+    /// and the optional P2-T08 email group routing (machine group B/C only): each blank fact is
+    /// its own exact token, a fourth document type is <c>DOCUMENT_TYPE_UNKNOWN</c>, a group other
+    /// than B/C is <c>MACHINE_GROUP_UNKNOWN</c>, and <c>null</c> plus the settled families/groups
+    /// validate clean.
     /// </summary>
     [Fact]
-    public void SET7_EmailTemplateFactsAreRequiredAndDocumentTypeIsClosed()
+    public void SET7_EmailTemplateFactsAreRequiredAndDocumentTypeAndGroupAreClosed()
     {
         Assert.Equal(
             new[] { ControloDefinicoesValidationErrors.TemplateNameRequired },
-            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("  ", "Assunto", "Corpo", null)));
+            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("  ", "Assunto", "Corpo", null, null, null)));
         Assert.Equal(
             new[] { ControloDefinicoesValidationErrors.SubjectRequired },
-            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("Modelo", " ", "Corpo", null)));
+            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("Modelo", " ", "Corpo", null, null, null)));
         Assert.Equal(
             new[] { ControloDefinicoesValidationErrors.BodyRequired },
-            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("Modelo", "Assunto", "\t", null)));
+            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("Modelo", "Assunto", "\t", null, null, null)));
 
         Assert.Equal(
             new[]
@@ -128,24 +130,37 @@ public sealed class ControloDefinicoesValidatorTests
                 ControloDefinicoesValidationErrors.SubjectRequired,
                 ControloDefinicoesValidationErrors.BodyRequired,
             },
-            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("", "", "", null)));
+            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("", "", "", null, null, null)));
 
         // The document type is one of peso/pegamentos/resumo or absent; anything else is unknown.
         Assert.Equal(
             new[] { ControloDefinicoesValidationErrors.DocumentTypeUnknown },
-            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", "folha")));
+            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", "folha", null, null)));
         Assert.Equal(
             new[] { ControloDefinicoesValidationErrors.DocumentTypeUnknown },
-            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", "x")));
+            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", "x", null, null)));
+
+        // The machine group is exactly B/C or absent; anything else is unknown (P2-T08 email
+        // slice: B1/B2/B3 → B, C1/C2/C3 → C; no per-machine associations).
+        Assert.Equal(
+            new[] { ControloDefinicoesValidationErrors.MachineGroupUnknown },
+            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", null, "A", null)));
+        Assert.Equal(
+            new[] { ControloDefinicoesValidationErrors.MachineGroupUnknown },
+            ControloDefinicoesValidator.Validate(new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", null, "X", null)));
 
         Assert.Empty(ControloDefinicoesValidator.Validate(
-            new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", null)));
+            new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", null, null, null)));
         Assert.Empty(ControloDefinicoesValidator.Validate(
-            new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", "peso")));
+            new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", "peso", null, null)));
         Assert.Empty(ControloDefinicoesValidator.Validate(
-            new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", "pegamentos")));
+            new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", "pegamentos", null, null)));
         Assert.Empty(ControloDefinicoesValidator.Validate(
-            new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", "resumo")));
+            new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", "resumo", null, null)));
+        Assert.Empty(ControloDefinicoesValidator.Validate(
+            new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", null, "B", null)));
+        Assert.Empty(ControloDefinicoesValidator.Validate(
+            new CreateEmailTemplateCommand("Modelo", "Assunto", "Corpo", null, "C", null)));
     }
 
     /// <summary>
@@ -238,6 +253,56 @@ public sealed class ControloDefinicoesValidatorTests
     // ---------------------------------------------------------------------------------------------
     // Fakes
     // ---------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// SET7b (P2-T08 email slice) — the template group routing travels COMPLETE or not at all and
+    /// references a real configured list: a group without its list (or a list without a group) is
+    /// <c>EMAIL_LIST_NOT_FOUND</c>, an unknown list id is <c>EMAIL_LIST_NOT_FOUND</c>, and a
+    /// complete routing (existing list + group) creates the template with both members.
+    /// </summary>
+    [Fact]
+    public async Task SET7b_TemplateGroupRoutingRequiresTheGroupAndAnExistingListTogether()
+    {
+        var lists = new StoringEmailListRepository();
+        var service = BuildSettingsService(lists);
+
+        // Create a real list first (the routing must reference an EXISTING configured list).
+        var listCreated = Assert.IsType<SettingsResult.EmailListCreated>(await service.CreateEmailListAsync(
+            new CreateEmailListCommand("Emails B", ["a@example.com"]), CancellationToken.None));
+        Assert.Equal("a@example.com", (await lists.ListAsync(CancellationToken.None))[0].Recipients[0].Address);
+
+        // A group without its list: incomplete routing → refused, nothing written.
+        var groupOnly = await service.CreateEmailTemplateAsync(
+            new CreateEmailTemplateCommand("Tpl B", "s", "b", "peso", "B", null), CancellationToken.None);
+        Assert.Contains(
+            ControloDefinicoesValidationErrors.EmailListNotFound,
+            Assert.IsType<SettingsResult.ValidationFailed>(groupOnly).Errors);
+
+        // A list without its group: incomplete routing → refused.
+        var listOnly = await service.CreateEmailTemplateAsync(
+            new CreateEmailTemplateCommand("Tpl B", "s", "b", "peso", null, listCreated.EmailListId), CancellationToken.None);
+        Assert.Contains(
+            ControloDefinicoesValidationErrors.EmailListNotFound,
+            Assert.IsType<SettingsResult.ValidationFailed>(listOnly).Errors);
+
+        // An unknown list id → refused (the list must EXIST).
+        var unknownList = await service.CreateEmailTemplateAsync(
+            new CreateEmailTemplateCommand("Tpl B", "s", "b", "peso", "B", Guid.NewGuid()), CancellationToken.None);
+        Assert.Contains(
+            ControloDefinicoesValidationErrors.EmailListNotFound,
+            Assert.IsType<SettingsResult.ValidationFailed>(unknownList).Errors);
+
+        // Complete routing: created with BOTH members (group + list).
+        var created = Assert.IsType<SettingsResult.EmailTemplateCreated>(await service.CreateEmailTemplateAsync(
+            new CreateEmailTemplateCommand("Tpl B", "s", "b", "peso", "B", listCreated.EmailListId),
+            CancellationToken.None));
+        Assert.Equal(1, created.Version);
+
+        // A template with neither group nor list stays a plain generic template (valid).
+        var plain = await service.CreateEmailTemplateAsync(
+            new CreateEmailTemplateCommand("Tpl Genérico", "s", "b", null, null, null), CancellationToken.None);
+        Assert.IsType<SettingsResult.EmailTemplateCreated>(plain);
+    }
 
     private static ControloDefinicoesService BuildSettingsService(IEmailListRepository emailLists) =>
         new(

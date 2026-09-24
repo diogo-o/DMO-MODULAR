@@ -71,6 +71,11 @@ public sealed class EmailTemplateRepository : IEmailTemplateRepository
                 DocumentType = template.DocumentType is { } type
                     ? EmailTemplateDocumentTypeTokens.ToToken(type)
                     : null,
+                // P2-T08 email slice group routing (machine → group → template → list).
+                MachineGroup = template.MachineGroup is { } group
+                    ? EmailMachineGroupTokens.ToToken(group)
+                    : null,
+                EmailListId = template.EmailListId?.Value,
                 Version = 1,
                 CreatedAt = now,
                 UpdatedAt = now,
@@ -120,6 +125,11 @@ public sealed class EmailTemplateRepository : IEmailTemplateRepository
             entity.DocumentType = template.DocumentType is { } type
                 ? EmailTemplateDocumentTypeTokens.ToToken(type)
                 : null;
+            // P2-T08 email slice group routing (machine → group → template → list).
+            entity.MachineGroup = template.MachineGroup is { } group
+                ? EmailMachineGroupTokens.ToToken(group)
+                : null;
+            entity.EmailListId = template.EmailListId?.Value;
             entity.Version += 1;
             entity.UpdatedAt = now;
 
@@ -248,6 +258,8 @@ public sealed class EmailTemplateRepository : IEmailTemplateRepository
         entity.Subject,
         entity.Body,
         EmailTemplateDocumentTypeTokens.Parse(entity.DocumentType),
+        EmailMachineGroupTokens.Parse(entity.MachineGroup),
+        entity.EmailListId is { } listId ? EmailListId.From(listId) : null,
         entity.Version,
         entity.CreatedAt,
         entity.UpdatedAt);

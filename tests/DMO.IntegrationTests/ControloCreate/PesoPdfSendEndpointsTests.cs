@@ -12,19 +12,17 @@ using PesoId = DMO.Domain.Controlo.PesoId;
 namespace DMO.IntegrationTests.ControloCreate;
 
 /// <summary>
-/// HTTP-class proofs of the P2-T08 manual Peso PDF email send (Create-owned operational work):
-/// the EXISTING generated PDF is attached (the flow generates then sends, or refuses
-/// <c>pdf-not-generated</c> without regenerating), the template/list resolve exclusively from
-/// the configured Definições data (peso template; single-list auto-application vs
-/// selection-required; no hardcoded recipient), a transport failure is a typed 409 that NEVER
-/// changes the Peso record or the decision, and the route is gated by the Controlo Create policy
-/// (an approve-only caller is denied).
+/// HTTP-class proofs of the automatic group-email send of the Peso PDF (P2-T08 email slice): the
+/// machine resolves the group (B1/B2/B3 → B; C1/C2/C3 → C) and the group's configured
+/// template/list route the EXISTING generated PDF (never regenerated); a group without template
+/// is a typed informative refusal; a transport failure is a typed 409 that NEVER changes the
+/// Peso record or the decision; and the route is gated by the Controlo Create policy (an
+/// approve-only caller is denied). NO body is ever sent — no recipient/list selection exists.
 /// </summary>
 /// <remarks>
-/// The transport is replaced by a recording double (the real SMTP adapter is a thin
-/// configuration-driven adapter and cannot send in tests); everything else — renderer, file
-/// store over a real temp base directory, orchestration, repositories — is the real production
-/// stack over the shared in-memory composition.</remarks>
+/// The transport is replaced by a recording double (the real SMTP adapter cannot send in tests);
+/// everything else — renderer, file store over a real temp base directory, orchestration,
+/// repositories — is the real production stack over the shared in-memory composition.</remarks>
 public sealed class PesoPdfSendEndpointsTests
 {
     // ----------------------------------------------------------------------------------------
@@ -33,13 +31,14 @@ public sealed class PesoPdfSendEndpointsTests
 
     private static async Task<Guid> SeedApprovedPesoAsync(
         P2T06TestComposition composition,
-        string referenceToken)
+        string referenceToken,
+        string machine = "B1")
     {
-        var tool = composition.SeedTool(ToolType.Cm, $"ref-{referenceToken}", "01", Processo.Nnpb, "B1");
+        var tool = composition.SeedTool(ToolType.Cm, $"ref-{referenceToken}", "01", Processo.Nnpb, machine);
         var jobOn = composition.SeedJobOnWithCmContext(
             $"ref-{referenceToken}",
             $"pn-{referenceToken}",
-            "B1",
+            machine,
             tool.ToolId.Value,
             ToolType.Cm,
             tool.Reference,
@@ -65,19 +64,28 @@ public sealed class PesoPdfSendEndpointsTests
         return pesoId;
     }
 
-    private static async Task SeedPesoTemplateAsync(P2T06TestComposition composition)
+    private static async Task<Guid> SeedGroupTemplateAsync(
+        P2T06TestComposition composition,
+        EmailMachineGroup group,
+        Guid? emailListId,
+        string name)
     {
+        var templateId = EmailTemplateId.New();
         await composition.Pesos.CreatedAsync(
             new EmailTemplate(
-                EmailTemplateId.New(),
-                Name: "Peso operação",
-                Subject: "Peso de controlo",
-                Body: "Segue o Peso de controlo.",
+                templateId,
+                Name: name,
+                Subject: $"Assunto do grupo {EmailMachineGroupTokens.ToToken(group)}",
+                Body: $"Segue o Peso de controlo do grupo {EmailMachineGroupTokens.ToToken(group)}.",
                 DocumentType: EmailTemplateDocumentType.Peso,
+                MachineGroup: group,
+                EmailListId: emailListId is { } list ? EmailListId.From(list) : null,
                 Version: 1,
                 DateTimeOffset.UtcNow,
                 DateTimeOffset.UtcNow),
             CancellationToken.None);
+
+        return templateId.Value;
     }
 
     private static async Task<Guid> SeedEmailListAsync(
@@ -129,19 +137,11 @@ public sealed class PesoPdfSendEndpointsTests
         return await P2T06TestHost.SendAuthenticatedAsync(client, request);
     }
 
-    private static async Task<HttpResponseMessage> SendAsync(
-        HttpClient client,
-        Guid pesoId,
-        string? json)
+    private static async Task<HttpResponseMessage> SendAsync(HttpClient client, Guid pesoId)
     {
         var request = new HttpRequestMessage(
             HttpMethod.Post,
-            $"/controlo/create/pesos/{pesoId}/peso-pdf/send")
-        {
-            Content = json is null
-                ? null
-                : new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
-        };
+            $"/controlo/create/pesos/{pesoId}/peso-pdf/send");
 
         return await P2T06TestHost.SendAuthenticatedAsync(client, request);
     }
@@ -207,19 +207,20 @@ public sealed class PesoPdfSendEndpointsTests
     }
 
     // ----------------------------------------------------------------------------------------
-    // Send flow
+    // Group routing (B and C) over the real stack
     // ----------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task Send_AttachesTheExistingGeneratedPdfToTheResolvedConfiguredListAndTemplate()
+    public async Task Send_GroupBRoutesTheExistingPdfToTheGroupTemplateAndItsList()
     {
         using var directory = new TempDirectory();
         var composition = new P2T06TestComposition();
-        var pesoId = await SeedApprovedPesoAsync(composition, "SEND1");
+        var pesoId = await SeedApprovedPesoAsync(composition, "SEND1", machine: "B1");
         await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
-        await SeedPesoTemplateAsync(composition);
         var listId = await SeedEmailListAsync(
-            composition, "Operação B1", "ops.b1@example.com", "chefe.b1@example.com");
+            composition, "Emails B", "ops.b1@example.com", "chefe.b1@example.com");
+        await SeedGroupTemplateAsync(
+            composition, EmailMachineGroup.B, listId, "Template B");
         var transport = new RecordingEmailTransport();
 
         using var factory = P2T06TestHost.ForUser(
@@ -232,7 +233,7 @@ public sealed class PesoPdfSendEndpointsTests
             });
         using var client = factory.CreateClient();
 
-        // Generate the PDF first (the send reuses the EXISTING document).
+        // Generate the PDF first (the send reuses the EXISTING document, never regenerates).
         using (var generated = await GenerateAsync(client, pesoId))
         {
             Assert.Equal(HttpStatusCode.OK, generated.StatusCode);
@@ -243,8 +244,8 @@ public sealed class PesoPdfSendEndpointsTests
             directory.FullPath, "ref-SEND1", "pn-SEND1", "Peso_ref-SEND1_B1.pdf");
         var storedPdf = File.ReadAllBytes(target);
 
-        // Manual send — no body: the single configured list applies automatically.
-        using (var sent = await SendAsync(client, pesoId, json: null))
+        // Manual send with NO body: the machine B1 resolves group B automatically.
+        using (var sent = await SendAsync(client, pesoId))
         {
             Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
             var payload = await ReadJsonAsync(sent);
@@ -252,33 +253,32 @@ public sealed class PesoPdfSendEndpointsTests
             Assert.Equal("sent", payload.GetProperty("status").GetString());
             Assert.Equal(pesoId, payload.GetProperty("pesoId").GetGuid());
             Assert.Equal("Peso_ref-SEND1_B1.pdf", payload.GetProperty("fileName").GetString());
-            Assert.Equal("Peso operação", payload.GetProperty("templateName").GetString());
+            Assert.Equal("Template B", payload.GetProperty("templateName").GetString());
+            Assert.Equal("B", payload.GetProperty("machineGroup").GetString());
             Assert.Equal(2, payload.GetProperty("recipients").GetArrayLength());
         }
 
-        // The transport received the EXISTING bytes as the attachment and the configured
-        // recipients (deterministic order) — no hardcoded address anywhere.
+        // The transport received the EXISTING bytes and the group's configured recipients
+        // (deterministic order) — no hardcoded address anywhere.
         var message = Assert.Single(transport.Messages);
         Assert.Equal(new[] { "chefe.b1@example.com", "ops.b1@example.com" }, message.To);
         Assert.Equal("Peso_ref-SEND1_B1.pdf", message.AttachmentFileName);
         Assert.Equal(storedPdf, message.AttachmentBytes);
-        Assert.Equal("Peso de controlo", message.Subject);
-        Assert.Equal("Segue o Peso de controlo.", message.Body);
 
         // No file was rewritten by the send (the existing document is reused untouched).
         Assert.Equal(storedPdf, File.ReadAllBytes(target));
     }
 
     [Fact]
-    public async Task Send_WithMultipleListsRequiresTheOperatorSelection()
+    public async Task Send_GroupCRoutesTheExistingPdfToTheGroupCTemplateAndItsList()
     {
         using var directory = new TempDirectory();
         var composition = new P2T06TestComposition();
-        var pesoId = await SeedApprovedPesoAsync(composition, "SEND2");
+        var pesoId = await SeedApprovedPesoAsync(composition, "SENDC", machine: "C2");
         await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
-        await SeedPesoTemplateAsync(composition);
-        var listA = await SeedEmailListAsync(composition, "A", "a@example.com");
-        var listB = await SeedEmailListAsync(composition, "B", "b@example.com");
+        var listId = await SeedEmailListAsync(composition, "Emails C", "ops.c@example.com");
+        await SeedGroupTemplateAsync(
+            composition, EmailMachineGroup.C, listId, "Template C");
         var transport = new RecordingEmailTransport();
 
         using var factory = P2T06TestHost.ForUser(
@@ -293,25 +293,49 @@ public sealed class PesoPdfSendEndpointsTests
 
         Assert.Equal(HttpStatusCode.OK, (await GenerateAsync(client, pesoId)).StatusCode);
 
-        // Without a selection: typed refusal, never a guess.
-        using (var refused = await SendAsync(client, pesoId, json: null))
-        {
-            Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
-            Assert.Equal(
-                "email-list-selection-required",
-                (await ReadJsonAsync(refused)).GetProperty("reason").GetString());
-        }
+        using var sent = await SendAsync(client, pesoId);
 
+        Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
+        var payload = await ReadJsonAsync(sent);
+        Assert.Equal("C", payload.GetProperty("machineGroup").GetString());
+        Assert.Equal("Template C", payload.GetProperty("templateName").GetString());
+        Assert.Equal(new[] { "ops.c@example.com" }, Assert.Single(transport.Messages).To);
+    }
+
+    // ----------------------------------------------------------------------------------------
+    // Typed refusals of the routing
+    // ----------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Send_GroupWithoutATemplateRefusesEmailGroupNotConfigured()
+    {
+        using var directory = new TempDirectory();
+        var composition = new P2T06TestComposition();
+        var pesoId = await SeedApprovedPesoAsync(composition, "SEND2", machine: "B2");
+        await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
+        await SeedEmailListAsync(composition, "Emails B", "ops@example.com");
+        // NO B-group template configured.
+        var transport = new RecordingEmailTransport();
+
+        using var factory = P2T06TestHost.ForUser(
+            P2T06TestHost.CreateOnly(),
+            composition,
+            services =>
+            {
+                services.RemoveAll<IEmailTransport>();
+                services.AddSingleton<IEmailTransport>(transport);
+            });
+        using var client = factory.CreateClient();
+
+        Assert.Equal(HttpStatusCode.OK, (await GenerateAsync(client, pesoId)).StatusCode);
+
+        using var response = await SendAsync(client, pesoId);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal(
+            "email-group-not-configured",
+            (await ReadJsonAsync(response)).GetProperty("reason").GetString());
         Assert.Empty(transport.Messages);
-
-        // With the explicit selection of the applicable configured list: sent.
-        using (var sent = await SendAsync(client, pesoId, json: $"{{\"emailListId\":\"{listA}\"}}"))
-        {
-            Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
-            Assert.Equal("sent", (await ReadJsonAsync(sent)).GetProperty("status").GetString());
-        }
-
-        Assert.Equal(new[] { "a@example.com" }, Assert.Single(transport.Messages).To);
     }
 
     [Fact]
@@ -319,10 +343,10 @@ public sealed class PesoPdfSendEndpointsTests
     {
         using var directory = new TempDirectory();
         var composition = new P2T06TestComposition();
-        var pesoId = await SeedApprovedPesoAsync(composition, "SEND3");
+        var pesoId = await SeedApprovedPesoAsync(composition, "SEND3", machine: "B1");
         await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
-        await SeedPesoTemplateAsync(composition);
-        await SeedEmailListAsync(composition, "Operação", "ops@example.com");
+        var listId = await SeedEmailListAsync(composition, "Emails B", "ops@example.com");
+        await SeedGroupTemplateAsync(composition, EmailMachineGroup.B, listId, "Template B");
         var transport = new RecordingEmailTransport();
 
         using var factory = P2T06TestHost.ForUser(
@@ -336,7 +360,7 @@ public sealed class PesoPdfSendEndpointsTests
         using var client = factory.CreateClient();
 
         // NO generation was performed: the send refuses instead of regenerating/recalculating.
-        using var response = await SendAsync(client, pesoId, json: null);
+        using var response = await SendAsync(client, pesoId);
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         Assert.Equal(
@@ -344,37 +368,6 @@ public sealed class PesoPdfSendEndpointsTests
             (await ReadJsonAsync(response)).GetProperty("reason").GetString());
         Assert.Empty(transport.Messages);
         Assert.False(Directory.Exists(Path.Combine(directory.FullPath, "ref-SEND3")));
-    }
-
-    [Fact]
-    public async Task Send_WithoutAnApplicableTemplateRefusesNotConfigured()
-    {
-        using var directory = new TempDirectory();
-        var composition = new P2T06TestComposition();
-        var pesoId = await SeedApprovedPesoAsync(composition, "SEND4");
-        await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
-        await SeedEmailListAsync(composition, "Operação", "ops@example.com");
-        var transport = new RecordingEmailTransport();
-
-        using var factory = P2T06TestHost.ForUser(
-            P2T06TestHost.CreateOnly(),
-            composition,
-            services =>
-            {
-                services.RemoveAll<IEmailTransport>();
-                services.AddSingleton<IEmailTransport>(transport);
-            });
-        using var client = factory.CreateClient();
-
-        Assert.Equal(HttpStatusCode.OK, (await GenerateAsync(client, pesoId)).StatusCode);
-
-        using var response = await SendAsync(client, pesoId, json: null);
-
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        Assert.Equal(
-            "email-template-not-configured",
-            (await ReadJsonAsync(response)).GetProperty("reason").GetString());
-        Assert.Empty(transport.Messages);
     }
 
     // ----------------------------------------------------------------------------------------
@@ -386,10 +379,10 @@ public sealed class PesoPdfSendEndpointsTests
     {
         using var directory = new TempDirectory();
         var composition = new P2T06TestComposition();
-        var pesoId = await SeedApprovedPesoAsync(composition, "SEND5");
+        var pesoId = await SeedApprovedPesoAsync(composition, "SEND5", machine: "B3");
         await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
-        await SeedPesoTemplateAsync(composition);
-        await SeedEmailListAsync(composition, "Operação", "ops@example.com");
+        var listId = await SeedEmailListAsync(composition, "Emails B", "ops@example.com");
+        await SeedGroupTemplateAsync(composition, EmailMachineGroup.B, listId, "Template B");
         var transport = new RecordingEmailTransport { ForcedState = EmailTransportState.Failed };
 
         using var factory = P2T06TestHost.ForUser(
@@ -405,7 +398,7 @@ public sealed class PesoPdfSendEndpointsTests
 
         Assert.Equal(HttpStatusCode.OK, (await GenerateAsync(client, pesoId)).StatusCode);
 
-        using var response = await SendAsync(client, pesoId, json: null);
+        using var response = await SendAsync(client, pesoId);
 
         // The typed refusal — NOT a 500, NOT a fake success.
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
@@ -413,9 +406,8 @@ public sealed class PesoPdfSendEndpointsTests
             "email-send-failed",
             (await ReadJsonAsync(response)).GetProperty("reason").GetString());
 
-        // The Peso record and the approval are untouched: same status, same version, same
-        // attribution and no write ever ran against the shared store (a failed email never
-        // alters the approval nor the peso_id).
+        // The Peso record and the approval are untouched: same status, version and attribution
+        // (a failed email never alters the approval nor the peso_id).
         var pesoAfter = (await composition.Pesos.GetByIdAsync(pesoId, CancellationToken.None))!;
         Assert.Equal(PesoStatus.Aprovado, pesoAfter.Status);
         Assert.Equal(pesoBefore.Version, pesoAfter.Version);
@@ -432,16 +424,16 @@ public sealed class PesoPdfSendEndpointsTests
     {
         using var directory = new TempDirectory();
         var composition = new P2T06TestComposition();
-        var pesoId = await SeedApprovedPesoAsync(composition, "SEND6");
+        var pesoId = await SeedApprovedPesoAsync(composition, "SEND6", machine: "B1");
         await ConfigureBaseDirectoryAsync(composition, directory.FullPath);
-        await SeedPesoTemplateAsync(composition);
-        await SeedEmailListAsync(composition, "Operação", "ops@example.com");
+        var listId = await SeedEmailListAsync(composition, "Emails B", "ops@example.com");
+        await SeedGroupTemplateAsync(composition, EmailMachineGroup.B, listId, "Template B");
 
         // Approve-only grant: the decision surface owns no operational document work.
         using var factory = P2T06TestHost.ForUser(P2T06TestHost.AllGranted(), composition);
         using var client = factory.CreateClient();
 
-        using var response = await SendAsync(client, pesoId, json: null);
+        using var response = await SendAsync(client, pesoId);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }

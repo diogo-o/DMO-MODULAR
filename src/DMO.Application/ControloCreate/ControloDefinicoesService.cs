@@ -307,6 +307,19 @@ public sealed class ControloDefinicoesService : IControloDefinicoesService
             return new SettingsResult.ValidationFailed(errors);
         }
 
+        // P2-T08 email slice: the template's group routing binds BOTH members together
+        // ("Template B + emails associados"): a group without a list (or a list without a group)
+        // is an incomplete routing — refused here so the send flow only ever resolves complete
+        // routings — and the referenced list must EXIST (the configured lists are the single
+        // recipient source; a second source of truth is never created).
+        if (command.MachineGroup is null != command.EmailListId is null
+            || (command.EmailListId is { } selectedId
+                && await _emailLists.GetByIdAsync(selectedId, cancellationToken) is null))
+        {
+            return new SettingsResult.ValidationFailed(
+                [ControloDefinicoesValidationErrors.EmailListNotFound]);
+        }
+
         var now = DateTimeOffset.UtcNow;
         var template = new EmailTemplate(
             EmailTemplateId.New(),
@@ -314,6 +327,10 @@ public sealed class ControloDefinicoesService : IControloDefinicoesService
             command.Subject.Trim(),
             command.Body.Trim(),
             ParseDocumentType(command.DocumentType),
+            EmailMachineGroupTokens.Parse(command.MachineGroup),
+            command.EmailListId is { } associated
+                ? EmailListId.From(associated)
+                : null,
             Version: 1,
             now,
             now);
@@ -355,12 +372,26 @@ public sealed class ControloDefinicoesService : IControloDefinicoesService
             return stale;
         }
 
+        // The group routing binds both members together and references a real configured list
+        // (same rule as create).
+        if (command.MachineGroup is null != command.EmailListId is null
+            || (command.EmailListId is { } selectedId
+                && await _emailLists.GetByIdAsync(selectedId, cancellationToken) is null))
+        {
+            return new SettingsResult.ValidationFailed(
+                [ControloDefinicoesValidationErrors.EmailListNotFound]);
+        }
+
         var template = persisted with
         {
             Name = command.Name.Trim(),
             Subject = command.Subject.Trim(),
             Body = command.Body.Trim(),
             DocumentType = ParseDocumentType(command.DocumentType),
+            MachineGroup = EmailMachineGroupTokens.Parse(command.MachineGroup),
+            EmailListId = command.EmailListId is { } associated
+                ? EmailListId.From(associated)
+                : null,
         };
 
         try

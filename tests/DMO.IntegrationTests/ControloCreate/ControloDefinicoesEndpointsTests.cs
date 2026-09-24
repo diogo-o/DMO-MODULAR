@@ -412,6 +412,140 @@ public sealed class ControloDefinicoesEndpointsTests
 
     // ---- arrangement helpers -------------------------------------------------------------
 
+    /// <summary>
+    /// P2-T08 email slice — the template group routing transports as a COMPLETE pair (machine
+    /// group B/C + the configured recipient list): a create with an existing list and group B
+    /// persists and reads back both members; a group without its list (or vice versa) and an
+    /// unknown list id are <c>EMAIL_LIST_NOT_FOUND</c>; an unknown group is
+    /// <c>MACHINE_GROUP_UNKNOWN</c>.
+    /// </summary>
+    [Fact]
+    public async Task EmailTemplates_GroupRoutingRequiresTheGroupAndExistingListTogether()
+    {
+        var composition = new P2T05TestComposition();
+
+        using var factory = P2T05TestHost.ForUser(P2T05TestHost.AllGranted(), composition);
+        using var client = factory.CreateClient();
+
+        // Create the configured list the routing will reference.
+        Guid listId;
+        using (var list = await P2T05TestHost.SendJsonAsync(
+                   client,
+                   HttpMethod.Post,
+                   $"{DefinicoesPath}/email-lists",
+                   P2T05TestHost.Json(new
+                   {
+                       name = "Emails B",
+                       recipients = new[] { "ops.b@example.com" },
+                   })))
+        {
+            Assert.Equal(HttpStatusCode.Created, list.StatusCode);
+            listId = (await ReadJsonAsync(list)).GetProperty("emailListId").GetGuid();
+        }
+
+        Guid templateId;
+        using (var created = await P2T05TestHost.SendJsonAsync(
+                   client,
+                   HttpMethod.Post,
+                   $"{DefinicoesPath}/email-templates",
+                   P2T05TestHost.Json(new
+                   {
+                       name = "Template B",
+                       subject = "Peso grupo B",
+                       body = "Segue o Peso.",
+                       documentType = "peso",
+                       machineGroup = "B",
+                       emailListId = listId,
+                   })))
+        {
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            templateId = (await ReadJsonAsync(created)).GetProperty("emailTemplateId").GetGuid();
+        }
+
+        // The read-back carries BOTH routing members.
+        using (var read = await P2T05TestHost.GetAsync(client, $"{DefinicoesPath}/email-templates/{templateId}"))
+        {
+            var payload = await ReadJsonAsync(read);
+            Assert.Equal("B", payload.GetProperty("machineGroup").GetString());
+            Assert.Equal(listId, payload.GetProperty("emailListId").GetGuid());
+        }
+
+        // The list listing shows the routing columns (group + associated list name) through the
+        // page's data source.
+        using (var templates = await P2T05TestHost.GetAsync(client, $"{DefinicoesPath}/email-templates"))
+        {
+            var item = Assert.Single((await ReadJsonAsync(templates)).GetProperty("templates").EnumerateArray());
+            Assert.Equal("B", item.GetProperty("machineGroup").GetString());
+            Assert.Equal(listId, item.GetProperty("emailListId").GetGuid());
+        }
+
+        // A group without its list → 400 EMAIL_LIST_NOT_FOUND (incomplete routing).
+        Guid? noListId = null;
+        using (var groupOnly = await P2T05TestHost.SendJsonAsync(
+                   client,
+                   HttpMethod.Post,
+                   $"{DefinicoesPath}/email-templates",
+                   P2T05TestHost.Json(new
+                   {
+                       name = "Tpl B sem lista",
+                       subject = "S",
+                       body = "B",
+                       documentType = "peso",
+                       machineGroup = "B",
+                       emailListId = noListId,
+                   })))
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, groupOnly.StatusCode);
+            var errors = (await ReadJsonAsync(groupOnly)).GetProperty("errors").EnumerateArray()
+                .Select(error => error.GetString()).ToArray();
+            Assert.Contains(ControloDefinicoesValidationErrors.EmailListNotFound, errors);
+        }
+
+        // An unknown list id → 400 EMAIL_LIST_NOT_FOUND.
+        using (var unknownList = await P2T05TestHost.SendJsonAsync(
+                   client,
+                   HttpMethod.Post,
+                   $"{DefinicoesPath}/email-templates",
+                   P2T05TestHost.Json(new
+                   {
+                       name = "Tpl B lista inexistente",
+                       subject = "S",
+                       body = "B",
+                       documentType = "peso",
+                       machineGroup = "B",
+                       emailListId = Guid.NewGuid(),
+                   })))
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, unknownList.StatusCode);
+            Assert.Contains(
+                ControloDefinicoesValidationErrors.EmailListNotFound,
+                (await ReadJsonAsync(unknownList)).GetProperty("errors").EnumerateArray()
+                    .Select(error => error.GetString()));
+        }
+
+        // An unknown machine group → 400 MACHINE_GROUP_UNKNOWN (only B/C exist).
+        using (var unknownGroup = await P2T05TestHost.SendJsonAsync(
+                   client,
+                   HttpMethod.Post,
+                   $"{DefinicoesPath}/email-templates",
+                   P2T05TestHost.Json(new
+                   {
+                       name = "Tpl X",
+                       subject = "S",
+                       body = "B",
+                       documentType = (string?)null,
+                       machineGroup = "X",
+                       emailListId = listId,
+                   })))
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, unknownGroup.StatusCode);
+            Assert.Contains(
+                ControloDefinicoesValidationErrors.MachineGroupUnknown,
+                (await ReadJsonAsync(unknownGroup)).GetProperty("errors").EnumerateArray()
+                    .Select(error => error.GetString()));
+        }
+    }
+
     /// <summary>Reads a JSON response body into a detached element.</summary>
     private static async Task<JsonElement> ReadJsonAsync(HttpResponseMessage response)
     {

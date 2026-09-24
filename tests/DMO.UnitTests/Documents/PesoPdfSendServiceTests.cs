@@ -6,13 +6,12 @@ using DMO.Domain.Controlo;
 namespace DMO.UnitTests.Documents;
 
 /// <summary>
-/// Unit proofs of the manual Peso PDF email send (P2-T08 documents slice, Create-owned
-/// operational work): the EXISTING generated PDF is attached (never regenerated/recalculated),
-/// template/list resolution uses ONLY the configured Definições data (peso template wins, then
-/// generic; a single configured list applies automatically, several require the operator's
-/// selection; no recipient is ever hardcoded), the subject/body travel verbatim (no placeholder
-/// syntax exists), the evidence is returned, and a transport failure NEVER alters the Peso
-/// record, the decision or the document.
+/// Unit proofs of the automatic group-email send of the Peso PDF (P2-T08 email slice): the
+/// machine resolves the group EXACTLY (B1/B2/B3 → B; C1/C2/C3 → C; anything else FAILS CLOSED
+/// without guessing), the group's single configured template supplies the verbatim subject/body
+/// and its associated list supplies the recipients (never hardcoded), the EXISTING generated PDF
+/// is attached (never regenerated/recalculated), the evidence is returned and a transport
+/// failure NEVER alters the Peso record, the decision or the document.
 /// </summary>
 public sealed class PesoPdfSendServiceTests
 {
@@ -20,43 +19,66 @@ public sealed class PesoPdfSendServiceTests
     private static readonly string BaseDirectory = Path.Combine(
         Path.GetTempPath(), $"dmo-peso-pdf-send-unit-{Guid.NewGuid():N}");
 
-    // ---- Template resolution -----------------------------------------------------------
+    // ---- Machine → group → template → recipients --------------------------------------
 
-    [Fact]
-    public async Task Send_ResolvesThePesoTemplateAndAttachesTheExistingPdf()
+    [Theory]
+    [InlineData("B1")]
+    [InlineData("B2")]
+    [InlineData("B3")]
+    public async Task Send_BMachinesResolveTheBGroupTemplateAndItsRecipients(string machine)
+    {
+        await AssertGroupSendAsync(machine, "B");
+    }
+
+    [Theory]
+    [InlineData("C1")]
+    [InlineData("C2")]
+    [InlineData("C3")]
+    public async Task Send_CMachinesResolveTheCGroupTemplateAndItsRecipients(string machine)
+    {
+        await AssertGroupSendAsync(machine, "C");
+    }
+
+    private async Task AssertGroupSendAsync(string machine, string groupToken)
     {
         Directory.CreateDirectory(BaseDirectory);
         try
         {
-            var template = Template(name: "Peso NNPB", documentType: EmailTemplateDocumentType.Peso);
-            var list = List("operacao", ["ops.b1@example.com", "chefe@example.com"]);
+            var list = List($"emails-{groupToken}", [$"ops.{groupToken.ToLowerInvariant()}@example.com", $"chefe.{groupToken.ToLowerInvariant()}@example.com"]);
+            var template = Template(
+                $"Template {groupToken}",
+                machineGroup: groupToken == "B" ? EmailMachineGroup.B : EmailMachineGroup.C,
+                emailListId: list.EmailListId);
             var pdfBytes = "EXISTING-PDF-BYTES"u8.ToArray();
             var transport = new FakeEmailTransport();
             var service = CreateService(
-                templates: [template], lists: [list], pdfBytes: pdfBytes, transport: transport);
+                machine: machine,
+                templates: [template],
+                lists: [list],
+                pdfBytes: pdfBytes,
+                transport: transport);
 
             var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
+                new SendPesoPdfCommand(PesoId),
                 CancellationToken.None);
 
             var sent = Assert.IsType<PesoPdfSendResult.Sent>(result);
             Assert.Equal(PesoId, sent.Evidence.PesoId);
-            Assert.Equal("Peso_REF-X_B1.pdf", sent.Evidence.FileName);
-            Assert.Equal("Peso NNPB", sent.Evidence.TemplateName);
+            Assert.Equal($"Peso_REF-X_{machine}.pdf", sent.Evidence.FileName);
+            Assert.Equal($"Template {groupToken}", sent.Evidence.TemplateName);
+            Assert.Equal(groupToken, sent.Evidence.MachineGroup);
             Assert.Equal(
-                new[] { "chefe@example.com", "ops.b1@example.com" }, // address ASC, deterministic
+                new[] { $"chefe.{groupToken.ToLowerInvariant()}@example.com", $"ops.{groupToken.ToLowerInvariant()}@example.com" }, // address ASC
                 sent.Evidence.Recipients);
 
             // The transport received the EXISTING bytes as the attachment and the template text
             // VERBATIM (no placeholder syntax exists — nothing is substituted).
             var message = Assert.Single(transport.Messages);
-            Assert.Equal("Assunto do Peso", message.Subject);
-            Assert.Equal("Corpo do envio do Peso.", message.Body);
-            Assert.Equal("Peso_REF-X_B1.pdf", message.AttachmentFileName);
+            Assert.Equal($"Assunto do grupo {groupToken}", message.Subject);
+            Assert.Equal($"Corpo do envio do grupo {groupToken}.", message.Body);
+            Assert.Equal($"Peso_REF-X_{machine}.pdf", message.AttachmentFileName);
             Assert.Equal(pdfBytes, message.AttachmentBytes);
-            Assert.Equal(
-                new[] { "chefe@example.com", "ops.b1@example.com" },
-                message.To);
+            Assert.Equal(sent.Evidence.Recipients, message.To);
         }
         finally
         {
@@ -65,53 +87,26 @@ public sealed class PesoPdfSendServiceTests
     }
 
     [Fact]
-    public async Task Send_FallsBackToTheGenericTemplateWhenNoPesoTemplateExists()
-    {
-        Directory.CreateDirectory(BaseDirectory);
-        try
-        {
-            var generic = Template(name: "Genérico", documentType: null);
-            var list = List("operacao", ["a@example.com"]);
-            var service = CreateService(
-                templates: [generic], lists: [list], pdfBytes: [1], transport: new FakeEmailTransport());
-
-            var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
-                CancellationToken.None);
-
-            var sent = Assert.IsType<PesoPdfSendResult.Sent>(result);
-            Assert.Equal("Genérico", sent.Evidence.TemplateName);
-        }
-        finally
-        {
-            Directory.Delete(BaseDirectory, recursive: true);
-        }
-    }
-
-    [Fact]
-    public async Task Send_WithSeveralPesoTemplatesRefusesAmbiguousAndNeverSends()
+    public async Task Send_WithNoTemplateOfTheGroupRefusesEmailGroupNotConfigured()
     {
         Directory.CreateDirectory(BaseDirectory);
         try
         {
             var transport = new FakeEmailTransport();
             var service = CreateService(
-                templates:
-                [
-                    Template(name: "Peso A", EmailTemplateDocumentType.Peso),
-                    Template(name: "Peso B", EmailTemplateDocumentType.Peso),
-                    Template(name: "Genérico", documentType: null),
-                ],
-                lists: [List("operacao", ["a@example.com"])],
+                machine: "B1",
+                templates: [], // no B-group template
+                lists: [List("emails-b", ["a@example.com"])],
                 pdfBytes: [1],
                 transport: transport);
 
             var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
+                new SendPesoPdfCommand(PesoId),
                 CancellationToken.None);
 
             var refused = Assert.IsType<PesoPdfSendResult.Refused>(result);
-            Assert.Equal(PesoPdfSendRefusalReason.EmailTemplateAmbiguous, refused.Reason);
+            Assert.Equal(PesoPdfSendRefusalReason.EmailGroupNotConfigured, refused.Reason);
+            Assert.Contains("grupo B", refused.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Empty(transport.Messages);
         }
         finally
@@ -121,98 +116,27 @@ public sealed class PesoPdfSendServiceTests
     }
 
     [Fact]
-    public async Task Send_WithoutAnyApplicableTemplateRefusesNotConfigured()
+    public async Task Send_WithATemplateWithoutItsRecipientListRefusesEmailGroupNotConfigured()
     {
         Directory.CreateDirectory(BaseDirectory);
         try
         {
             var transport = new FakeEmailTransport();
             var service = CreateService(
-                templates: [], lists: [List("operacao", ["a@example.com"])], pdfBytes: [1], transport: transport);
-
-            var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
-                CancellationToken.None);
-
-            Assert.Equal(
-                PesoPdfSendRefusalReason.EmailTemplateNotConfigured,
-                Assert.IsType<PesoPdfSendResult.Refused>(result).Reason);
-            Assert.Empty(transport.Messages);
-        }
-        finally
-        {
-            Directory.Delete(BaseDirectory, recursive: true);
-        }
-    }
-
-    // ---- Recipient resolution ---------------------------------------------------------
-
-    [Fact]
-    public async Task Send_HonoursTheOperatorSelectedListAndRefusesUnknownOrEmptyLists()
-    {
-        Directory.CreateDirectory(BaseDirectory);
-        try
-        {
-            var selected = List("selecionada", ["sel@example.com"]);
-            var other = List("outra", ["out@example.com"]);
-            var template = Template("Peso", EmailTemplateDocumentType.Peso);
-            var transport = new FakeEmailTransport();
-
-            // Explicit selection is honoured even with several lists configured.
-            var service = CreateService(
-                templates: [template], lists: [selected, other], pdfBytes: [1], transport: transport);
-            var sent = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, selected.EmailListId.Value),
-                CancellationToken.None);
-            Assert.Equal(
-                new[] { "sel@example.com" },
-                Assert.IsType<PesoPdfSendResult.Sent>(sent).Evidence.Recipients);
-
-            // Unknown id refused.
-            var unknown = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, Guid.NewGuid()),
-                CancellationToken.None);
-            Assert.Equal(
-                PesoPdfSendRefusalReason.EmailListNotFound,
-                Assert.IsType<PesoPdfSendResult.Refused>(unknown).Reason);
-
-            // Empty list refused — no address is invented.
-            var emptyService = CreateService(
-                templates: [template], lists: [List("vazia", [])], pdfBytes: [1], transport: transport);
-            var empty = await emptyService.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
-                CancellationToken.None);
-            Assert.Equal(
-                PesoPdfSendRefusalReason.EmailListEmpty,
-                Assert.IsType<PesoPdfSendResult.Refused>(empty).Reason);
-        }
-        finally
-        {
-            Directory.Delete(BaseDirectory, recursive: true);
-        }
-    }
-
-    [Fact]
-    public async Task Send_WithSeveralListsRequiresTheOperatorSelection()
-    {
-        Directory.CreateDirectory(BaseDirectory);
-        try
-        {
-            var transport = new FakeEmailTransport();
-            var service = CreateService(
-                templates: [Template("Peso", EmailTemplateDocumentType.Peso)],
-                lists: [List("A", ["a@example.com"]), List("B", ["b@example.com"])],
+                machine: "C2",
+                templates: [Template("Template C", EmailMachineGroup.C, emailListId: null)],
+                lists: [],
                 pdfBytes: [1],
                 transport: transport);
 
             var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
+                new SendPesoPdfCommand(PesoId),
                 CancellationToken.None);
 
             Assert.Equal(
-                PesoPdfSendRefusalReason.EmailListSelectionRequired,
+                PesoPdfSendRefusalReason.EmailGroupNotConfigured,
                 Assert.IsType<PesoPdfSendResult.Refused>(result).Reason);
-            Assert.Empty(transport.Messages); // never guesses among several lists
+            Assert.Empty(transport.Messages);
         }
         finally
         {
@@ -221,24 +145,127 @@ public sealed class PesoPdfSendServiceTests
     }
 
     [Fact]
-    public async Task Send_WithoutAnyConfiguredListRefusesNotConfigured()
+    public async Task Send_WithSeveralTemplatesOfTheGroupRefusesAmbiguous()
     {
         Directory.CreateDirectory(BaseDirectory);
         try
         {
+            var list = List("emails-b", ["a@example.com"]);
+            var transport = new FakeEmailTransport();
             var service = CreateService(
-                templates: [Template("Peso", EmailTemplateDocumentType.Peso)],
-                lists: [],
+                machine: "B2",
+                templates:
+                [
+                    Template("Template B A", EmailMachineGroup.B, list.EmailListId),
+                    Template("Template B B", EmailMachineGroup.B, list.EmailListId),
+                ],
+                lists: [list],
                 pdfBytes: [1],
-                transport: new FakeEmailTransport());
+                transport: transport);
 
             var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
+                new SendPesoPdfCommand(PesoId),
                 CancellationToken.None);
 
             Assert.Equal(
-                PesoPdfSendRefusalReason.EmailListNotConfigured,
+                PesoPdfSendRefusalReason.EmailTemplateAmbiguous,
                 Assert.IsType<PesoPdfSendResult.Refused>(result).Reason);
+            Assert.Empty(transport.Messages);
+        }
+        finally
+        {
+            Directory.Delete(BaseDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Send_WithAnEmptyRecipientListRefusesEmailListEmpty()
+    {
+        Directory.CreateDirectory(BaseDirectory);
+        try
+        {
+            var list = List("emails-c", []);
+            var transport = new FakeEmailTransport();
+            var service = CreateService(
+                machine: "C1",
+                templates: [Template("Template C", EmailMachineGroup.C, list.EmailListId)],
+                lists: [list],
+                pdfBytes: [1],
+                transport: transport);
+
+            var result = await service.SendAsync(
+                new SendPesoPdfCommand(PesoId),
+                CancellationToken.None);
+
+            Assert.Equal(
+                PesoPdfSendRefusalReason.EmailListEmpty,
+                Assert.IsType<PesoPdfSendResult.Refused>(result).Reason);
+            Assert.Empty(transport.Messages);
+        }
+        finally
+        {
+            Directory.Delete(BaseDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Send_WithAListOutsideTheConfiguredSetRefusesEmailListNotFound()
+    {
+        Directory.CreateDirectory(BaseDirectory);
+        try
+        {
+            var transport = new FakeEmailTransport();
+            var service = CreateService(
+                machine: "B3",
+                templates: [Template("Template B", EmailMachineGroup.B, EmailListId.New())], // list not in the store
+                lists: [],
+                pdfBytes: [1],
+                transport: transport);
+
+            var result = await service.SendAsync(
+                new SendPesoPdfCommand(PesoId),
+                CancellationToken.None);
+
+            Assert.Equal(
+                PesoPdfSendRefusalReason.EmailListNotFound,
+                Assert.IsType<PesoPdfSendResult.Refused>(result).Reason);
+            Assert.Empty(transport.Messages);
+        }
+        finally
+        {
+            Directory.Delete(BaseDirectory, recursive: true);
+        }
+    }
+
+    // ---- Machines outside the set: fail closed ----------------------------------------
+
+    [Theory]
+    [InlineData("X1")]
+    [InlineData("B0")]
+    [InlineData("C4")]
+    [InlineData("desconhecida")]
+    public async Task Send_WithAMachineOutsideTheGroupsRefusesMachineGroupUnsupported(string machine)
+    {
+        Directory.CreateDirectory(BaseDirectory);
+        try
+        {
+            var list = List("emails-b", ["a@example.com"]);
+            var transport = new FakeEmailTransport();
+            var service = CreateService(
+                machine: machine,
+                templates: [Template("Template B", EmailMachineGroup.B, list.EmailListId)],
+                lists: [list],
+                pdfBytes: [1],
+                transport: transport);
+
+            var result = await service.SendAsync(
+                new SendPesoPdfCommand(PesoId),
+                CancellationToken.None);
+
+            var refused = Assert.IsType<PesoPdfSendResult.Refused>(result);
+            Assert.Equal(PesoPdfSendRefusalReason.MachineGroupUnsupported, refused.Reason);
+            Assert.Contains(machine, refused.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(transport.Messages); // nothing is guessed
         }
         finally
         {
@@ -254,15 +281,17 @@ public sealed class PesoPdfSendServiceTests
         Directory.CreateDirectory(BaseDirectory);
         try
         {
+            var list = List("emails-b", ["a@example.com"]);
             var transport = new FakeEmailTransport();
             var service = CreateService(
-                templates: [Template("Peso", EmailTemplateDocumentType.Peso)],
-                lists: [List("operacao", ["a@example.com"])],
+                machine: "B1",
+                templates: [Template("Template B", EmailMachineGroup.B, list.EmailListId)],
+                lists: [list],
                 pdfBytes: null, // no file stored
                 transport: transport);
 
             var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
+                new SendPesoPdfCommand(PesoId),
                 CancellationToken.None);
 
             var refused = Assert.IsType<PesoPdfSendResult.Refused>(result);
@@ -283,15 +312,17 @@ public sealed class PesoPdfSendServiceTests
         Directory.CreateDirectory(BaseDirectory);
         try
         {
+            var list = List("emails-b", ["a@example.com"]);
             var service = CreateService(
                 sheets: PesoPdfFixtures.PendingStatusSheet(),
-                templates: [Template("Peso", EmailTemplateDocumentType.Peso)],
-                lists: [List("operacao", ["a@example.com"])],
+                machine: "B1",
+                templates: [Template("Template B", EmailMachineGroup.B, list.EmailListId)],
+                lists: [list],
                 pdfBytes: [1],
                 transport: new FakeEmailTransport());
 
             var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
+                new SendPesoPdfCommand(PesoId),
                 CancellationToken.None);
 
             Assert.Equal(
@@ -310,15 +341,17 @@ public sealed class PesoPdfSendServiceTests
         Directory.CreateDirectory(BaseDirectory);
         try
         {
+            var list = List("emails-b", ["a@example.com"]);
             var service = CreateService(
                 sheets: PesoPdfFixtures.PendingAnchorSheet(),
-                templates: [Template("Peso", EmailTemplateDocumentType.Peso)],
-                lists: [List("operacao", ["a@example.com"])],
+                machine: "B1",
+                templates: [Template("Template B", EmailMachineGroup.B, list.EmailListId)],
+                lists: [list],
                 pdfBytes: [1],
                 transport: new FakeEmailTransport());
 
             var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
+                new SendPesoPdfCommand(PesoId),
                 CancellationToken.None);
 
             Assert.Equal(
@@ -336,64 +369,32 @@ public sealed class PesoPdfSendServiceTests
     {
         var missingBase = Path.Combine(Path.GetTempPath(), $"dmo-peso-pdf-send-missing-{Guid.NewGuid():N}");
 
-        // No settings row → pdf-directory-not-configured.
         var notConfigured = CreateServiceWithoutSettings(
-            templates: [Template("Peso", EmailTemplateDocumentType.Peso)],
-            lists: [List("operacao", ["a@example.com"])]);
+            machine: "B1",
+            templates: [Template("Template B", EmailMachineGroup.B, EmailListId.New())],
+            lists: []);
         var refused = await notConfigured.SendAsync(
-            new SendPesoPdfCommand(PesoId, EmailListId: null),
+            new SendPesoPdfCommand(PesoId),
             CancellationToken.None);
         Assert.Equal(
             PesoPdfSendRefusalReason.PdfDirectoryNotConfigured,
             Assert.IsType<PesoPdfSendResult.Refused>(refused).Reason);
 
-        // Configured but inaccessible base → workspace-unavailable.
         var service = new PesoPdfSendService(
             new FakePdfDirectorySettingsRepository(new PdfDirectorySettings(
                 Guid.NewGuid(), missingBase, Version: 1, DateTimeOffset.UtcNow)),
             new FixedProbe { Verdict = PdfDirectoryCheckState.DirectoryNotFound },
             new FakeControloRead(PesoPdfFixtures.DecidedSheet()),
             new FakeFileStore([1]),
-            new FakeEmailTemplateRepository([Template("Peso", EmailTemplateDocumentType.Peso)]),
-            new FakeEmailListRepository([List("operacao", ["a@example.com"])]),
+            new FakeEmailTemplateRepository([Template("Template B", EmailMachineGroup.B, EmailListId.New())]),
+            new FakeEmailListRepository([]),
             new FakeEmailTransport());
         var workspace = await service.SendAsync(
-            new SendPesoPdfCommand(PesoId, EmailListId: null),
+            new SendPesoPdfCommand(PesoId),
             CancellationToken.None);
         Assert.Equal(
             PesoPdfSendRefusalReason.WorkspaceUnavailable,
             Assert.IsType<PesoPdfSendResult.Refused>(workspace).Reason);
-    }
-
-    [Fact]
-    public async Task Send_WithUnsafeTraversalFactsRefusesInvalidFileName()
-    {
-        Directory.CreateDirectory(BaseDirectory);
-        try
-        {
-            var sheet = PesoPdfFixtures.DecidedSheet() with
-            {
-                Production = new PesoProductionProjection("REF/X", "2026-001", "B1", null),
-            };
-            var service = CreateService(
-                sheets: sheet,
-                templates: [Template("Peso", EmailTemplateDocumentType.Peso)],
-                lists: [List("operacao", ["a@example.com"])],
-                pdfBytes: [1],
-                transport: new FakeEmailTransport());
-
-            var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
-                CancellationToken.None);
-
-            Assert.Equal(
-                PesoPdfSendRefusalReason.InvalidFileName,
-                Assert.IsType<PesoPdfSendResult.Refused>(result).Reason);
-        }
-        finally
-        {
-            Directory.Delete(BaseDirectory, recursive: true);
-        }
     }
 
     // ---- Transport outcomes -----------------------------------------------------------
@@ -404,15 +405,17 @@ public sealed class PesoPdfSendServiceTests
         Directory.CreateDirectory(BaseDirectory);
         try
         {
+            var list = List("emails-b", ["a@example.com"]);
             var transport = new FakeEmailTransport { ForcedState = EmailTransportState.NotConfigured };
             var service = CreateService(
-                templates: [Template("Peso", EmailTemplateDocumentType.Peso)],
-                lists: [List("operacao", ["a@example.com"])],
+                machine: "B1",
+                templates: [Template("Template B", EmailMachineGroup.B, list.EmailListId)],
+                lists: [list],
                 pdfBytes: [1],
                 transport: transport);
 
             var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
+                new SendPesoPdfCommand(PesoId),
                 CancellationToken.None);
 
             Assert.Equal(
@@ -431,17 +434,19 @@ public sealed class PesoPdfSendServiceTests
         Directory.CreateDirectory(BaseDirectory);
         try
         {
+            var list = List("emails-b", ["a@example.com"]);
             var transport = new FakeEmailTransport { ForcedState = EmailTransportState.Failed };
             var createRead = new FakeControloRead(PesoPdfFixtures.DecidedSheet());
             var service = CreateService(
                 createRead: createRead,
-                templates: [Template("Peso", EmailTemplateDocumentType.Peso)],
-                lists: [List("operacao", ["a@example.com"])],
+                machine: "B1",
+                templates: [Template("Template B", EmailMachineGroup.B, list.EmailListId)],
+                lists: [list],
                 pdfBytes: [1],
                 transport: transport);
 
             var result = await service.SendAsync(
-                new SendPesoPdfCommand(PesoId, EmailListId: null),
+                new SendPesoPdfCommand(PesoId),
                 CancellationToken.None);
 
             var refused = Assert.IsType<PesoPdfSendResult.Refused>(result);
@@ -462,6 +467,7 @@ public sealed class PesoPdfSendServiceTests
     // -----------------------------------------------------------------------------------
 
     private PesoPdfSendService CreateService(
+        string machine = "B1",
         IReadOnlyList<EmailTemplate>? templates = null,
         IReadOnlyList<EmailList>? lists = null,
         byte[]? pdfBytes = null,
@@ -474,30 +480,36 @@ public sealed class PesoPdfSendServiceTests
             new FixedProbe(),
             createRead ?? (sheets is { } sheet
                 ? new FakeControloRead(sheet)
-                : new FakeControloRead(PesoPdfFixtures.DecidedSheet())),
+                : new FakeControloRead(PesoPdfFixtures.DecidedSheet(machine: machine))),
             new FakeFileStore(pdfBytes),
             new FakeEmailTemplateRepository(templates ?? []),
             new FakeEmailListRepository(lists ?? []),
             transport ?? new FakeEmailTransport());
 
     private PesoPdfSendService CreateServiceWithoutSettings(
+        string machine = "B1",
         IReadOnlyList<EmailTemplate>? templates = null,
         IReadOnlyList<EmailList>? lists = null) =>
         new(
             new FakePdfDirectorySettingsRepository(),
             new FixedProbe(),
-            new FakeControloRead(PesoPdfFixtures.DecidedSheet()),
+            new FakeControloRead(PesoPdfFixtures.DecidedSheet(machine: machine)),
             new FakeFileStore([1]),
             new FakeEmailTemplateRepository(templates ?? []),
             new FakeEmailListRepository(lists ?? []),
             new FakeEmailTransport());
 
-    private static EmailTemplate Template(string name, EmailTemplateDocumentType? documentType) => new(
+    private static EmailTemplate Template(
+        string name,
+        EmailMachineGroup? machineGroup = null,
+        EmailListId? emailListId = null) => new(
         EmailTemplateId.New(),
         name,
-        Subject: name == "Genérico" ? "Assunto genérico" : "Assunto do Peso",
-        Body: name == "Genérico" ? "Corpo genérico." : "Corpo do envio do Peso.",
-        documentType,
+        Subject: machineGroup is { } group ? $"Assunto do grupo {EmailMachineGroupTokens.ToToken(group)}" : "Assunto genérico",
+        Body: machineGroup is { } bodyGroup ? $"Corpo do envio do grupo {EmailMachineGroupTokens.ToToken(bodyGroup)}." : "Corpo genérico.",
+        DocumentType: EmailTemplateDocumentType.Peso,
+        machineGroup,
+        emailListId,
         Version: 1,
         DateTimeOffset.UtcNow,
         DateTimeOffset.UtcNow);

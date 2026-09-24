@@ -8,15 +8,21 @@ namespace DMO.Infrastructure.Persistence.EntityConfigurations;
 /// EF configuration for the <c>email_templates</c> table.
 /// </summary>
 /// <remarks>
-/// Authority: P2-T05 contract §16.8/§17. Unique <c>email_templates_name_key</c>; non-blank
-/// name/subject/body CHECKs; the <c>document_type</c> CHECK allows <c>NULL</c> (generic) or one of
-/// the three Beta output families (Q-DOCTYPE). Text is stored verbatim — no placeholder syntax
-/// (Q-PLACE).
+/// Authority: P2-T05 contract §16.8/§17; P2-T08 email slice (group routing). Unique
+/// <c>email_templates_name_key</c>; non-blank name/subject/body CHECKs; the <c>document_type</c>
+/// CHECK allows <c>NULL</c> (generic) or one of the three Beta output families (Q-DOCTYPE). The
+/// <c>machine_group</c> CHECK allows <c>NULL</c> or exactly <c>B</c>/<c>C</c>; the optional
+/// <c>email_list_id</c> FK is RESTRICT (a list referenced by a template can never be deleted
+/// silently) — together they are the slice's group routing, stored on the template row itself
+/// (no generic rule architecture).
 /// </remarks>
 public sealed class EmailTemplateEntityConfiguration : IEntityTypeConfiguration<EmailTemplateEntity>
 {
     /// <summary>Database name of the unique-template-name index.</summary>
     public const string NameUniqueConstraintName = "email_templates_name_key";
+
+    /// <summary>Database name of the FK index on <c>email_list_id</c>.</summary>
+    public const string EmailListIndexName = "IX_email_templates_email_list_id";
 
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<EmailTemplateEntity> builder)
@@ -31,6 +37,9 @@ public sealed class EmailTemplateEntityConfiguration : IEntityTypeConfiguration<
             table.HasCheckConstraint(
                 "email_templates_document_type_check",
                 "document_type IS NULL OR document_type IN ('peso','pegamentos','resumo')");
+            table.HasCheckConstraint(
+                "email_templates_machine_group_check",
+                "machine_group IS NULL OR machine_group IN ('B','C')");
         });
 
         builder.HasKey(template => template.EmailTemplateId);
@@ -52,6 +61,21 @@ public sealed class EmailTemplateEntityConfiguration : IEntityTypeConfiguration<
 
         builder.Property(template => template.DocumentType)
             .HasColumnName("document_type");
+
+        builder.Property(template => template.MachineGroup)
+            .HasColumnName("machine_group");
+
+        builder.Property(template => template.EmailListId)
+            .HasColumnName("email_list_id");
+
+        builder.HasOne<EmailListEntity>()
+            .WithMany()
+            .HasForeignKey(template => template.EmailListId)
+            .HasConstraintName("email_templates_email_list_id_fkey")
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(template => template.EmailListId)
+            .HasDatabaseName(EmailListIndexName);
 
         builder.Property(template => template.Version)
             .HasColumnName("version")

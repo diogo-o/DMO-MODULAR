@@ -1,25 +1,26 @@
 namespace DMO.Application.Documents;
 
 /// <summary>
-/// The manual Peso PDF email-send command: the canonical <c>peso_id</c> and an OPTIONAL
-/// <c>emailListId</c>. No recipient address and no template value are ever accepted from the
-/// client — recipients/template come exclusively from the configured Definições data (the
-/// operator selects the applicable configured list only when configuration does not determine
-/// it; nothing is hardcoded).
+/// The manual Peso PDF email-send command: only the canonical <c>peso_id</c>. No recipient
+/// address, no list id and no template value are ever accepted from the client — the recipients
+/// and the template are resolved AUTOMATICALLY from the configured group routing
+/// (<c>machine → group B/C → template → list → recipients</c>); nothing is hardcoded.
 /// </summary>
-public sealed record SendPesoPdfCommand(Guid PesoId, Guid? EmailListId);
+public sealed record SendPesoPdfCommand(Guid PesoId);
 
 /// <summary>
 /// The typed evidence of a successful manual send: the record identity, the EXISTING document
-/// that was attached, the configured template used and the resolved recipients (addresses ASC).
-/// The evidence is returned to the operator and recorded as status-level application logging —
-/// the current persistence model has NO send table and this slice introduces none (a migration
-/// would be required; none is authorized), so no send row is written.</summary>
+/// that was attached, the configured template used (with the machine group that routed to it)
+/// and the resolved recipients (addresses ASC). The evidence is returned to the operator and
+/// recorded as status-level application logging — the current persistence model has NO send
+/// table and this slice introduces none (a migration would be required; none is authorized),
+/// so no send row is written.</summary>
 public sealed record PesoPdfSendEvidence(
     Guid PesoId,
     int Version,
     string FileName,
     string TemplateName,
+    string MachineGroup,
     IReadOnlyList<string> Recipients,
     DateTimeOffset SentAt);
 
@@ -32,7 +33,7 @@ public abstract record PesoPdfSendResult
     /// <summary>The Peso does not exist.</summary>
     public sealed record NotFound(Guid PesoId) : PesoPdfSendResult;
 
-    /// <summary>The request itself is invalid (defensive; the endpoint binds an id + optional list id).</summary>
+    /// <summary>The request itself is invalid (defensive; the endpoint binds only the id).</summary>
     public sealed record ValidationFailed(IReadOnlyList<string> Errors) : PesoPdfSendResult;
 
     /// <summary>The send was refused with a typed reason — never a generic error and NEVER a
@@ -65,22 +66,20 @@ public enum PesoPdfSendRefusalReason
     /// <summary>The existing PDF could not be read for another infrastructure reason.</summary>
     DocumentReadFailed,
 
-    /// <summary>No email template applies to the Peso output (no <c>peso</c> and no generic template).</summary>
-    EmailTemplateNotConfigured,
+    /// <summary>The machine is outside the two operational groups (B1/B2/B3 → B; C1/C2/C3 → C) —
+    /// FAIL CLOSED, nothing is guessed.</summary>
+    MachineGroupUnsupported,
 
-    /// <summary>More than one template applies with the same precedence and the current model fixes
-    /// no selection-precedence rule (Q-DOCTYPE applicability: <c>peso</c> beats generic; beyond
-    /// that nothing is invented).</summary>
+    /// <summary>The machine's group has no complete email routing configured (no template of the
+    /// group, or a template without its associated recipient list) — informative, never invented.</summary>
+    EmailGroupNotConfigured,
+
+    /// <summary>More than one template is configured for the same group and the model fixes no
+    /// selection-precedence rule (nothing is invented).</summary>
     EmailTemplateAmbiguous,
 
-    /// <summary>Zero email lists are configured and none was selected.</summary>
-    EmailListNotConfigured,
-
-    /// <summary>More than one list is configured and none was selected — configuration does not
-    /// determine the recipients; the operator selects the applicable configured list.</summary>
-    EmailListSelectionRequired,
-
-    /// <summary>The selected list id does not exist.</summary>
+    /// <summary>The template's associated recipient list does not exist (defensive; the FK
+    /// RESTRICT prevents deletion while referenced).</summary>
     EmailListNotFound,
 
     /// <summary>The resolved list has no recipients (no address is ever invented).</summary>
