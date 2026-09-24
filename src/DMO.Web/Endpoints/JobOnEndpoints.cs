@@ -7,7 +7,8 @@ using DMO.Web.Authorization;
 namespace DMO.Web.Endpoints;
 
 /// <summary>
-/// Minimal API surface of the Job On occurrence (P2-T04 contract §13.2 routes 2, 5, 6, 8, 10 and 11).
+/// Minimal API surface of the Job On occurrence (P2-T04 contract §13.2 routes 2, 5, 6, 8, 10 and 11,
+/// plus the additive consult route of the outputs slice: open the Peso PDF of a related Peso).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -52,6 +53,54 @@ public static class JobOnEndpoints
                 cancellationToken);
 
             return MapResult(result);
+        });
+
+        // Additive consult route of the outputs slice — open/stream the Peso PDF of ONE related
+        // Peso of this production. The route carries only identities: the deterministic target is
+        // resolved and the bytes are read by the Documents application contract
+        // (IPesoPdfDocumentRead) from the operator-configured base directory — no absolute path and
+        // no file:// target ever cross this surface, and nothing here reads the filesystem. The
+        // related-peso scope is enforced against the real cm_contexts of the occurrence: a Peso of
+        // another production is 404, never served. Missing/not-yet-generated states are typed
+        // (409 pdf-not-generated), never a dead button and never a file error conflated with
+        // "no file yet".
+        consult.MapGet("/{jobonId:guid}/pesos/{pesoId:guid}/peso-pdf", async (
+            Guid jobonId,
+            Guid pesoId,
+            IJobOnControlOutputsService service,
+            ILogger<LoggerCategory> logger,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await service.ReadAsync(jobonId, pesoId, cancellationToken);
+
+            if (result is JobOnControlOutputContentResult.Refused(var reason, var message))
+            {
+                logger.LogWarning("Peso PDF open refused ({Reason}): {Message}", reason, message);
+            }
+
+            return result switch
+            {
+                // Bytes inline (no Content-Disposition attachment): the action opens/views the PDF
+                // in the browser; the file name is never needed at transport level.
+                JobOnControlOutputContentResult.Found(_, var content) =>
+                    Results.File(content, "application/pdf"),
+
+                JobOnControlOutputContentResult.NotGenerated(var id) =>
+                    Results.Conflict(new { reason = "pdf-not-generated", pesoId = id }),
+
+                JobOnControlOutputContentResult.NotFound(var id) =>
+                    Results.NotFound(new { reason = "not-found", jobonId = id }),
+
+                JobOnControlOutputContentResult.RelatedPesoNotFound(var jobOnId, var id) =>
+                    Results.NotFound(new { reason = "peso-not-found", jobonId = jobOnId, pesoId = id }),
+
+                JobOnControlOutputContentResult.Refused(var refusalReason, var refusalMessage) =>
+                    Results.Conflict(new PesoPdfOpenRefusalResponse(
+                        OpenRefusalToken(refusalReason),
+                        refusalMessage)),
+
+                _ => Results.StatusCode(StatusCodes.Status500InternalServerError),
+            };
         });
 
         // Route 5 — the same query for the CREATE surface. It exists as its own Create-gated route
@@ -267,6 +316,16 @@ public static class JobOnEndpoints
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Unknown refusal reason."),
     };
 
+    /// <summary>The exact transport token of a Peso PDF open refusal (outputs slice).</summary>
+    public static string OpenRefusalToken(JobOnControlOutputRefusalReason reason) => reason switch
+    {
+        JobOnControlOutputRefusalReason.PdfDirectoryNotConfigured => "pdf-directory-not-configured",
+        JobOnControlOutputRefusalReason.WorkspaceUnavailable => "workspace-unavailable",
+        JobOnControlOutputRefusalReason.InvalidFileName => "invalid-file-name",
+        JobOnControlOutputRefusalReason.ReadFailed => "document-read-failed",
+        _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Unknown open refusal reason."),
+    };
+
     private static JobOnProductionItemResponse ToItemResponse(JobOnProductionListItem item) => new(
         item.JobOnId,
         item.Reference,
@@ -370,6 +429,9 @@ public static class JobOnEndpoints
 
     /// <summary>One reported dependency.</summary>
     public sealed record JobOnDependencyResponse(string Kind, string Description);
+
+    /// <summary>Typed, actionable refusal response of the Peso PDF open route (outputs slice).</summary>
+    public sealed record PesoPdfOpenRefusalResponse(string Reason, string Message);
 
     /// <summary>Job On ficha response.</summary>
     public sealed record JobOnFichaResponse(

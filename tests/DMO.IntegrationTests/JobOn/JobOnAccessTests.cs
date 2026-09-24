@@ -20,8 +20,9 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace DMO.IntegrationTests.JobOn;
 
 /// <summary>
-/// P2-T04 route/policy/access proofs: the 14 contracted routes, their single canonical Module policy,
-/// and the HTTP boundary decision for every caller state.
+/// P2-T04 route/policy/access proofs: the contracted routes (the 14 of §13.2 plus the additive
+/// outputs-slice open route), their single canonical Module policy, and the HTTP boundary decision
+/// for every caller state.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -58,7 +59,9 @@ public sealed class JobOnAccessTests
         ModuleAuthorizationPolicies.PolicyName(ModuleCatalog.Ferramentas);
 
     /// <summary>
-    /// The 14 contracted P2-T04 routes of §13.2: verb, normalized path template, contracted policy.
+    /// The 15 contracted P2-T04/Job On routes: the 14 of §13.2 plus the additive consult route of the
+    /// outputs slice (open the Peso PDF of a related Peso — verb, normalized path template, contracted
+    /// policy).
     /// </summary>
     private static readonly ContractedRoute[] ContractedRoutes =
     [
@@ -76,6 +79,7 @@ public sealed class JobOnAccessTests
         new("GET", "/ferramentas/tools", FerramentasPolicy, "route 12 — canonical Tool search/list"),
         new("POST", "/ferramentas/tools", FerramentasPolicy, "route 13 — canonical Tool create"),
         new("GET", "/ferramentas/tools/{}", FerramentasPolicy, "route 14 — contextual Tool ficha page"),
+        new("GET", "/jobon/{}/pesos/{}/peso-pdf", ViewPolicy, "route 15 — Peso PDF open (outputs slice, consult)"),
     ];
 
     /// <summary>The six contracted Job On/Ferramentas page models and their contracted policy.</summary>
@@ -135,9 +139,10 @@ public sealed class JobOnAccessTests
     }
 
     /// <summary>RTE3 (contract §20.6) — proves AC-83: NO additional P2-T04 route, page or endpoint
-    /// exists beyond the contracted 14, in the endpoint inventory and in the page-model list.</summary>
+    /// exists beyond the contracted surface (the 14 P2-T04 routes plus the additive outputs-slice
+    /// open route), in the endpoint inventory and in the page-model list.</summary>
     [Fact]
-    public void RTE3_NoAdditionalP2T04RouteOrPageExistsBeyondTheFourteen()
+    public void RTE3_NoAdditionalP2T04RouteOrPageExistsBeyondTheContractedSurface()
     {
         using var factory = P2T04TestHost.ForUser(P2T04TestHost.AllGranted(), new P2T04TestStore());
         var endpoints = P2T04Endpoints(factory);
@@ -145,7 +150,7 @@ public sealed class JobOnAccessTests
         var mapped = endpoints.Select(endpoint => $"{VerbsOf(endpoint)[0]} {PathOf(endpoint)}").ToArray();
         var contracted = ContractedRoutes.Select(route => $"{route.Verb} {route.Path}").ToArray();
 
-        Assert.Equal(14, endpoints.Count);
+        Assert.Equal(15, endpoints.Count);
         Assert.Equal(contracted.Length, mapped.Length);
         Assert.Empty(mapped.Except(contracted, StringComparer.Ordinal));
         Assert.Empty(contracted.Except(mapped, StringComparer.Ordinal));
@@ -872,7 +877,7 @@ public sealed class JobOnAccessTests
         using var factory = P2T04TestHost.ForUser(P2T04TestHost.AllGranted(), new P2T04TestStore());
         var endpoints = P2T04Endpoints(factory);
 
-        Assert.Equal(14, endpoints.Count);
+        Assert.Equal(15, endpoints.Count);
 
         foreach (var endpoint in endpoints)
         {

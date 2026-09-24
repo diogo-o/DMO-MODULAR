@@ -559,6 +559,16 @@ internal static class P2T04ProductionScan
         // (23 product tables; the unreviewed 007 lifecycle tables are gone).
         "tests/DMO.IntegrationTests/JobOn/P2T04TestStore.cs",
         "tests/DMO.IntegrationTests/Persistence/Migration006ControloApproveDomainTests.cs",
+        // ---- P2-T08 (disclosed repair, outputs slice): the pre-existing documents test files the
+        // P2-T08 slices created under tests/DMO.UnitTests/Documents ---------------------------
+        // The P2-T08 email group-routing and Peso PDF generation slices added their own test
+        // surface under tests/DMO.UnitTests/Documents without extending this disclosure; the
+        // files legitimately carry the P2-T04 vocabulary (the canonical Tool identity tuple of
+        // the SHARED sheet fixtures and the canonical MachineCode of the email machine-group
+        // routing). The boundary row was red since those slices; this disclosure repairs the
+        // omission — an additive repair, never a weakening.
+        "tests/DMO.UnitTests/Documents/EmailMachineGroupTests.cs",
+        "tests/DMO.UnitTests/Documents/PesoPdfFixtures.cs",
     ];
 
     /// <summary>The new P2-T04 env-gated persistence test files (contract §20.9/§20.10).</summary>

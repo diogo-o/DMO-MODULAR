@@ -1,3 +1,5 @@
+using DMO.Application.ControloCreate;
+using DMO.Application.Documents;
 using DMO.Application.JobOn;
 using DMO.Application.Persistence;
 using DMO.Application.Repositories;
@@ -9,15 +11,18 @@ using DomainJobOnId = DMO.Domain.JobOn.JobOnId;
 namespace DMO.IntegrationTests.JobOn;
 
 /// <summary>
-/// Test-owned in-memory implementation of both P2-T04 repository contracts, with the contracted
-/// persistence semantics.
+/// Test-owned in-memory implementation of the P2-T04 repository contracts and the two
+/// outputs-slice seams (<see cref="IPesoOutputRead"/> + <see cref="IPesoPdfDocumentRead"/>), with
+/// the contracted persistence semantics.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The P2-T04 HTTP-class tests exercise the real <see cref="ToolService"/> and
 /// <c>JobOnService</c> over this store, so they prove the transport, the policies and the
 /// orchestration without requiring a disposable PostgreSQL database. The schema itself is proven
-/// separately by the env-gated DB-class tests.
+/// separately by the env-gated DB-class tests. The outputs-slice tests run the real
+/// <c>JobOnControlOutputsService</c>, the sheet page and the open route over this same store:
+/// seeded Pesos and seeded PDF bytes drive the rendered section and the open response.
 /// </para>
 /// <para>
 /// Every write is built in locals and committed only at the end, so a forced failure leaves NOTHING
@@ -25,11 +30,17 @@ namespace DMO.IntegrationTests.JobOn;
 /// what makes the "forced failure ⇒ total rollback" rows meaningful.
 /// </para>
 /// </remarks>
-internal sealed class P2T04TestStore : IToolRepository, IJobOnRepository
+internal sealed class P2T04TestStore : IToolRepository, IJobOnRepository, IPesoOutputRead, IPesoPdfDocumentRead
 {
     private readonly Dictionary<Guid, Tool> _tools = [];
     private readonly Dictionary<Guid, IReadOnlyList<ToolContext>> _contexts = [];
     private readonly Dictionary<Guid, DomainJobOn> _jobOns = [];
+
+    /// <summary>The related-Peso anchors of the outputs slice: (peso_id, cm_id) in seed order.</summary>
+    private readonly List<(Guid PesoId, Guid CmId)> _pesoAnchors = [];
+
+    /// <summary>The seeded PDF contents of the outputs slice: peso_id → (file name, bytes).</summary>
+    private readonly Dictionary<Guid, (string FileName, byte[] Content)> _pesoPdfs = [];
 
     /// <summary>When set, a canonical Tool create fails before anything is written.</summary>
     public bool FailToolCreate { get; set; }
@@ -131,6 +142,70 @@ internal sealed class P2T04TestStore : IToolRepository, IJobOnRepository
     /// <summary>The ids of every known production occurrence.</summary>
     public IReadOnlyList<Guid> JobOnIds() =>
         _contexts.Keys.ToList();
+
+    /// <summary>Seeds a production-bound Peso anchored on the supplied <c>cm_id</c> (outputs-slice
+    /// arrangement; the id is allocated by the arrangement).</summary>
+    public Guid SeedPeso(Guid cmId)
+    {
+        var pesoId = Guid.NewGuid();
+        _pesoAnchors.Add((pesoId, cmId));
+
+        return pesoId;
+    }
+
+    /// <summary>Seeds the stored Peso PDF of one Peso (outputs-slice arrangement: the content the
+    /// document route must stream back).</summary>
+    public void SeedPesoPdf(Guid pesoId, string fileName, byte[] content) =>
+        _pesoPdfs[pesoId] = (fileName, content);
+
+    // ---- IPesoOutputRead (outputs slice: jobon_id → related peso_id values) -------------------
+
+    Task<IReadOnlyList<Guid>> IPesoOutputRead.ListByJobOnIdAsync(
+        Guid jobOnId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Guid>>(RelatedPesoIds(jobOnId));
+
+    private IReadOnlyList<Guid> RelatedPesoIds(Guid jobOnId)
+    {
+        // The same relation the real read resolves: a Peso is an output of the occurrence iff its
+        // cm_id is a real cm_contexts row of that occurrence. The store keeps the real context
+        // rows; the anchors keep seed order.
+        var cmIds = _contexts.TryGetValue(jobOnId, out var contexts)
+            ? contexts
+                .Where(context => context.ContextType == ToolContextType.Cm)
+                .Select(context => context.ContextId)
+                .ToHashSet()
+            : [];
+
+        return _pesoAnchors
+            .Where(anchor => cmIds.Contains(anchor.CmId))
+            .Select(anchor => anchor.PesoId)
+            .ToList();
+    }
+
+    // ---- IPesoPdfDocumentRead (outputs slice: availability + content of the seeded PDFs) -------
+
+    Task<PesoPdfAvailabilityResult> IPesoPdfDocumentRead.GetAvailabilityAsync(
+        Guid pesoId,
+        CancellationToken cancellationToken)
+    {
+        PesoPdfAvailabilityResult result = _pesoPdfs.TryGetValue(pesoId, out var pdf)
+            ? new PesoPdfAvailabilityResult.Available(pdf.FileName, $"Peso/{pdf.FileName}")
+            : new PesoPdfAvailabilityResult.NotGenerated();
+
+        return Task.FromResult(result);
+    }
+
+    Task<PesoPdfContentResult> IPesoPdfDocumentRead.ReadAsync(
+        Guid pesoId,
+        CancellationToken cancellationToken)
+    {
+        PesoPdfContentResult result = _pesoPdfs.TryGetValue(pesoId, out var pdf)
+            ? new PesoPdfContentResult.Found(pdf.FileName, $"Peso/{pdf.FileName}", pdf.Content)
+            : new PesoPdfContentResult.NotGenerated();
+
+        return Task.FromResult(result);
+    }
 
     // ---- IToolRepository ------------------------------------------------------------------
 

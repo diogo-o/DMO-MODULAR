@@ -161,3 +161,63 @@
     border-top: 1px solid var(--dmo-line);
     padding-top: var(--dmo-space-3);
 }
+
+/* Outputs do Controlo (this slice: Peso PDF only). Compact rows: name + availability + open/ação.
+   No breakpoint rule, per the fixed-desktop layout policy of this stylesheet. */
+
+.dmo-page-frame .dmo-jobon__outputs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--dmo-space-2);
+    border-top: 1px solid var(--dmo-line);
+    padding-top: var(--dmo-space-3);
+}
+
+.dmo-page-frame .dmo-jobon__outputs-title {
+    color: var(--dmo-ink);
+    font-weight: 700;
+    margin: 0;
+}
+
+.dmo-page-frame .dmo-jobon__output-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--dmo-space-2);
+}
+
+.dmo-page-frame .dmo-jobon__output {
+    display: flex;
+    align-items: baseline;
+    gap: var(--dmo-space-3);
+    padding: var(--dmo-space-2) var(--dmo-space-3);
+    border: 1px solid var(--dmo-line);
+    border-radius: var(--dmo-radius);
+    background: var(--dmo-surface);
+}
+
+.dmo-page-frame .dmo-jobon__output-name {
+    color: var(--dmo-muted);
+    font-weight: 600;
+    min-width: 6rem;
+}
+
+.dmo-page-frame .dmo-jobon__output-open {
+    color: var(--dmo-accent-dark);
+    font-weight: 600;
+}
+
+.dmo-page-frame .dmo-jobon__output-file {
+    color: var(--dmo-ink);
+    font-family: var(--dmo-font-mono);
+}
+
+.dmo-page-frame .dmo-jobon__output-state {
+    color: var(--dmo-muted);
+}
+
+.dmo-page-frame .dmo-jobon__output-hint {
+    color: var(--dmo-muted);
+}

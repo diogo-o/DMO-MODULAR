@@ -1051,8 +1051,9 @@ public sealed class JobOnContractTests
                     $"{member.Name} must not accept a set of occurrences."));
         }
 
-        // The route table agrees: the only route parameter in the whole Job On surface is the single
-        // occurrence id, and no template mentions a cascade-style option.
+        // The route table agrees: the only route parameters in the whole Job On surface are the
+        // occurrence id and — on the additive Peso PDF open route of the outputs slice — the Peso
+        // id; no template mentions a cascade-style option.
         var templates = JobOnRouteTemplates();
         Assert.Contains("/{jobonId:guid}", templates);
         Assert.Empty(Offenders(templates, vocabulary));
@@ -1062,7 +1063,7 @@ public sealed class JobOnContractTests
             .Select(parameter => parameter.ToLowerInvariant())
             .Distinct(StringComparer.Ordinal)
             .ToList();
-        Assert.Equal(new[] { "jobonid:guid" }, routeParameters);
+        Assert.Equal(new[] { "jobonid:guid", "pesoid:guid" }, routeParameters);
 
         // The delete is one occurrence per call, addressed by that single route parameter.
         Assert.Contains(

@@ -1,5 +1,7 @@
 using System.Text.Encodings.Web;
 using DMO.Application.Access;
+using DMO.Application.ControloCreate;
+using DMO.Application.Documents;
 using DMO.Application.JobOn;
 using DMO.Application.Repositories;
 using DMO.Application.Session;
@@ -83,6 +85,16 @@ internal static class P2T04TestHost
                 services.RemoveAll<IJobOnRepository>();
                 services.AddSingleton<IToolRepository>(applicationStore);
                 services.AddSingleton<IJobOnRepository>(applicationStore);
+
+                // The outputs-slice seams (IPesoOutputRead + IPesoPdfDocumentRead) are store-backed
+                // in this composition: the real JobOnControlOutputsService and JobOnEndpoints run
+                // over controlled arrangements (seeded Pesos and seeded PDF contents), exactly as
+                // the repositories — no database is touched by the Job On sheet or its document
+                // route here; the DB-backed reads are proven by the persistence-class tests.
+                services.RemoveAll<IPesoOutputRead>();
+                services.RemoveAll<IPesoPdfDocumentRead>();
+                services.AddSingleton<IPesoOutputRead>(applicationStore);
+                services.AddSingleton<IPesoPdfDocumentRead>(applicationStore);
 
                 // The real lineage probe reads the database; in this store-backed composition the
                 // lineage lives in the store, so the probe reports exactly the same fact from the

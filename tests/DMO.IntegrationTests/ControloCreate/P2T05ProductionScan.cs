@@ -279,6 +279,25 @@ internal static class P2T05ProductionScan
 
     // ================= ownership / allow-list ============================================
 
+    /// <summary>
+    /// The disclosed outputs-slice Job On files of the changed-path allow-list (BND9/AC-Y7): the
+    /// Job On owned files that NECESSARILY carry the Peso output vocabulary of what they expose —
+    /// the <c>jobon_id → peso_id</c> read projection and service, the controlled <c>peso-pdf</c>
+    /// open route and the sheet outputs section. They are spread into <see cref="OwnedPathPrefixes"/>
+    /// (the same files are disclosed for the P2-T04-side scan by the P2-T04 BND7 row), and BND9
+    /// asserts each disclosed file really carries the additive outputs vocabulary (never vacuous).
+    /// </summary>
+    public static IReadOnlyList<string> DisclosedOutputsSliceSourcePaths { get; } =
+    [
+        "src/DMO.Application/JobOn/IJobOnControlOutputsService.cs",
+        "src/DMO.Application/JobOn/JobOnControlOutputsModels.cs",
+        "src/DMO.Application/JobOn/JobOnControlOutputsService.cs",
+        "src/DMO.Infrastructure/Persistence/DmoPesoOutputRead.cs",
+        "src/DMO.Web/Endpoints/JobOnEndpoints.cs",
+        "src/DMO.Web/Pages/JobOn/View.cshtml",
+        "src/DMO.Web/Pages/JobOn/View.cshtml.cs",
+    ];
+
     /// <summary>The P2-T05 owned source path prefixes (contract Appendix B and §23; the
     /// post-closure correction adds the glass-density settings sources and migration 005).</summary>
     public static IReadOnlyList<string> OwnedPathPrefixes { get; } =
@@ -365,6 +384,12 @@ internal static class P2T05ProductionScan
         // surface (the documents slice pins its own boundary/regression rows).
         "src/DMO.Application/Documents/",
         "src/DMO.Web/Endpoints/DocumentsEndpoints.cs",
+        // ---- P2-T08 outputs slice (disclosed extension, BND7-paired): the Job On sheet exposes
+        // the Peso outputs of the occurrence (the jobon_id → peso_id read projection and the
+        // controlled peso-pdf open route), so the Job On owned files of the slice necessarily
+        // carry the Peso vocabulary of what they expose. Disclosed here exactly like the P2-T04
+        // BND7 row discloses the same files; BND9 asserts each carries the outputs vocabulary.
+        ..DisclosedOutputsSliceSourcePaths,
     ];
 
     /// <summary>

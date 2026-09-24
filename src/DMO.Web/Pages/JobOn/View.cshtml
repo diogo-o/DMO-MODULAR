@@ -1,5 +1,6 @@
 @page "/jobon/{jobonId:guid}"
 @model DMO.Web.Pages.JobOn.ViewModel
+@using DMO.Application.JobOn
 @using DMO.Web.Frontend.Shared.Contracts
 @{
     ViewData["Title"] = "Job On";
@@ -65,4 +66,55 @@
             }
         </div>
     }
+
+    @*
+        Outputs do Controlo (this slice: Peso PDF only). Compact section: the occurrence facts
+        (Referência/Produção/Máquina/Data) are already visible above and are never repeated here.
+        Only an AVAILABLE output renders an open action — a plain link to the controlled application
+        route (never a filesystem path); Ainda não gerado and Workspace indisponível render
+        information only, with no useless button.
+    *@
+    <section class="dmo-jobon__outputs" data-dmo-jobon-outputs="true" aria-label="Outputs do Controlo">
+        <h2 class="dmo-jobon__outputs-title">Outputs do Controlo</h2>
+
+        @if (Model.Outputs.Count == 0)
+        {
+            <partial name="~/Pages/Shared/Components/_CommonStateRegion.cshtml"
+                     model="@CommonStateRegionPresentation.Empty(
+                         "Esta produção ainda não tem Pesos de controlo associados.",
+                         "Outputs do Controlo")" />
+        }
+        else
+        {
+            <ul class="dmo-jobon__output-list">
+                @foreach (var output in Model.Outputs)
+                {
+                    <li class="dmo-jobon__output"
+                        data-dmo-peso-output="@output.PesoId"
+                        data-dmo-peso-output-availability="@output.AvailabilityToken">
+                        <span class="dmo-jobon__output-name">@output.Name</span>
+
+                        @if (output.Availability == PesoOutputAvailability.Available)
+                        {
+                            <a class="dmo-jobon__output-open"
+                               href="@output.OpenHref"
+                               target="_blank"
+                               rel="noopener"
+                               data-dmo-peso-output-open="true">Abrir PDF</a>
+                            <span class="dmo-jobon__output-file" data-dmo-peso-output-file="true">@output.FileName</span>
+                        }
+                        else if (output.Availability == PesoOutputAvailability.NotGenerated)
+                        {
+                            <span class="dmo-jobon__output-state" data-dmo-peso-output-not-generated="true">Ainda não gerado</span>
+                        }
+                        else
+                        {
+                            <span class="dmo-jobon__output-state" data-dmo-peso-output-workspace="true">Workspace indisponível</span>
+                            <span class="dmo-jobon__output-hint">verifique o diretório em Controlo_Create → Definições</span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </section>
 </section>

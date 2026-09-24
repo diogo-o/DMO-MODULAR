@@ -47,9 +47,10 @@ public static class PersistenceServiceCollectionExtensions
 
         // ---- P2-T05 Controlo Create: Peso core + Definições settings -------------------------
         // Additive registrations only (P2-T05 contract §20/§21.6): the P2-T05 repositories, the
-        // read-only cm-context traversal (DmoPesoContextRead), the server-host directory probe and
-        // the Peso delete-dependency probe (one additive line per contributing module, P2-T04
-        // §11.5 seam).
+        // read-only cm-context traversal (DmoPesoContextRead), the Peso outputs read
+        // (DmoPesoOutputRead — the jobon_id → peso_id seam of the outputs slice), the server-host
+        // directory probe and the Peso delete-dependency probe (one additive line per contributing
+        // module, P2-T04 §11.5 seam).
         services.AddScoped<IPesoRepository, PesoRepository>();
         services.AddScoped<IRepairerRepository, RepairerRepository>();
         services.AddScoped<IMachineRepairerAssignmentRepository, MachineRepairerAssignmentRepository>();
@@ -58,6 +59,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IEmailTemplateRepository, EmailTemplateRepository>();
         services.AddScoped<IGlassDensitySettingsRepository, GlassDensitySettingsRepository>();
         services.AddScoped<IPesoContextRead, DmoPesoContextRead>();
+        services.AddScoped<IPesoOutputRead, DmoPesoOutputRead>();
         services.AddScoped<IProductionResumoRead, DmoProductionResumoRead>();
         services.AddScoped<IJobOnDependencyProbe, PesoJobOnDependencyProbe>();
 

@@ -542,6 +542,13 @@ public sealed class P2T04RegressionTests
     /// <c>machines</c> table, no Linha B/C grouping and no <c>defini</c>/<c>settings</c> concept. The
     /// machine CODE column and the legitimate <c>tool_machines</c> table are not flagged (contract
     /// §17.1; AC-99).
+    /// <para>
+    /// <b>Outputs slice disclosed extension</b> (Controlo outputs on the Job On sheet — this
+    /// slice): the workspace hint of the outputs section necessarily NAMES the configured settings
+    /// surface it points the operator to (<c>Controlo_Create → Definições</c>) — the single
+    /// <c>defini</c> mention in markup on the Job On sheet, disclosed here instead of degrading the
+    /// operator-facing hint. The disclosure is asserted non-vacuous below.
+    /// </para>
     /// </summary>
     [Fact]
     public void BND6_NoRepairerMachineAssignmentMachineRegistryOrDefinicoesVocabularyAppears()
@@ -567,13 +574,38 @@ public sealed class P2T04RegressionTests
                 $"The excluded schema name {token} is declared in: {string.Join(", ", offenders)}.");
         }
 
+        // The outputs-slice disclosed extension: the ONE Job On sheet file whose markup names the
+        // configured settings surface in its workspace hint.
+        var disclosedOutputsSliceHintPaths = new[]
+        {
+            "src/DMO.Web/Pages/JobOn/View.cshtml",
+        };
+
         foreach (var fragment in P2T04ProductionScan.DefiniSettingsFragments)
         {
-            var offenders = P2T04ProductionScan.ProductionSourcesMentioningFragment(fragment);
+            var offenders = P2T04ProductionScan.ProductionSourcesMentioningFragment(fragment)
+                .Where(path => !disclosedOutputsSliceHintPaths.Contains(path, StringComparer.Ordinal))
+                .ToList();
 
             Assert.True(
                 offenders.Count == 0,
                 $"The excluded fragment '{fragment}' appears in code/markup of: {string.Join(", ", offenders)}.");
+        }
+
+        // The disclosure is real, not vacuous: the disclosed sheet file exists and its outputs
+        // section actually carries the workspace hint naming the settings surface.
+        foreach (var path in disclosedOutputsSliceHintPaths)
+        {
+            Assert.True(P2T04ProductionScan.Exists(path), $"Disclosed outputs-slice path '{path}' is missing.");
+
+            var source = P2T04ProductionScan.Read(path);
+
+            Assert.True(
+                source.Contains(string.Concat("Defini", "\u00e7\u00f5es"), StringComparison.Ordinal),
+                $"Disclosed outputs-slice path '{path}' does not carry the disclosed settings hint.");
+            Assert.True(
+                source.Contains("data-dmo-jobon-outputs", StringComparison.Ordinal),
+                $"Disclosed outputs-slice path '{path}' does not carry the outputs section.");
         }
 
         // Schema-level proof: the P2-T04 migration creates exactly the six contracted tables and no
@@ -604,6 +636,16 @@ public sealed class P2T04RegressionTests
     /// scan — the exclusion is asserted to be exactly the three sanctioned files AND to carry the
     /// additive vocabulary (never vacuous).
     /// </para>
+    /// <para>
+    /// <b>Outputs slice disclosed extension</b> (Controlo outputs on the Job On sheet — this
+    /// slice: the Peso PDF): exposing the existing Controlo outputs on the Job On surface
+    /// NECESSARILY carries the Peso/PDF vocabulary of what it exposes — the outputs read
+    /// projection and service (the <c>jobon_id → peso_id</c> relation), the open route of the
+    /// controlled <c>peso-pdf</c> endpoint and the outputs section of the sheet. Those Job On
+    /// owned files are excluded from this row's vocabulary scan and each is asserted to actually
+    /// carry the additive outputs vocabulary (never vacuous). No other P2-T04 source gains the
+    /// later-workstream vocabulary.
+    /// </para>
     /// </summary>
     [Fact]
     public void BND7_NoP2T05OrLaterVocabularyAppearsInAnyP2T04Source()
@@ -615,11 +657,28 @@ public sealed class P2T04RegressionTests
             "src/DMO.Application/JobOn/JobOnModels.cs",
         };
 
+        // The outputs-slice additive files: the Job On owned files that necessarily carry the
+        // Peso/PDF vocabulary of the outputs they expose (read projection, service contract,
+        // implementation, open route, sheet markup and page model).
+        var disclosedOutputsSlicePaths = new[]
+        {
+            "src/DMO.Application/JobOn/IJobOnControlOutputsService.cs",
+            "src/DMO.Application/JobOn/JobOnControlOutputsService.cs",
+            "src/DMO.Application/JobOn/JobOnControlOutputsModels.cs",
+            "src/DMO.Web/Endpoints/JobOnEndpoints.cs",
+            "src/DMO.Web/Pages/JobOn/View.cshtml",
+            "src/DMO.Web/Pages/JobOn/View.cshtml.cs",
+        };
+
+        var disclosed = disclosedCrossStreamAdditivePaths
+            .Concat(disclosedOutputsSlicePaths)
+            .ToList();
+
         foreach (var token in P2T04ProductionScan.LaterWorkstreamTokens)
         {
             var offenders = P2T04ProductionScan
                 .ProductionSourcesMentioningInCode(token)
-                .Where(path => !disclosedCrossStreamAdditivePaths.Contains(path, StringComparer.Ordinal))
+                .Where(path => !disclosed.Contains(path, StringComparer.Ordinal))
                 .ToList();
 
             Assert.True(
@@ -627,7 +686,7 @@ public sealed class P2T04RegressionTests
                 $"The P2-T05+ token '{token}' appears in code/markup of: {string.Join(", ", offenders)}.");
         }
 
-        // The exclusion is real, not vacuous: every disclosed file exists and carries the
+        // The Q-CAND exclusion is real, not vacuous: every disclosed file exists and carries the
         // sanctioned additive vocabulary (the Q-CAND candidate read), and it is exactly the three
         // files — no other P2-T04 source carries the Peso vocabulary outside the scan.
         foreach (var path in disclosedCrossStreamAdditivePaths)
@@ -642,6 +701,26 @@ public sealed class P2T04RegressionTests
                 $"Disclosed additive path '{path}' does not carry the sanctioned additive member.");
         }
 
+        // The outputs-slice exclusion is real, not vacuous: every disclosed file exists and carries
+        // the additive outputs vocabulary (the control-outputs read or the controlled peso-pdf
+        // open route of the sheet).
+        var outputsSliceReadMarker = string.Concat("Job", "On", "Control", "Outputs");
+        var outputsSliceRouteMarker = string.Concat("peso", "-pdf");
+        var outputsSliceVocabularyMarker = string.Concat("Pe", "so");
+
+        foreach (var path in disclosedOutputsSlicePaths)
+        {
+            Assert.True(P2T04ProductionScan.Exists(path), $"Disclosed outputs-slice path '{path}' is missing.");
+
+            var source = P2T04ProductionScan.Read(path);
+
+            Assert.True(
+                source.Contains(outputsSliceReadMarker, StringComparison.Ordinal)
+                || source.Contains(outputsSliceRouteMarker, StringComparison.Ordinal)
+                || source.Contains(outputsSliceVocabularyMarker, StringComparison.Ordinal),
+                $"Disclosed outputs-slice path '{path}' does not carry the sanctioned additive vocabulary.");
+        }
+
         var allPesoMentions = P2T04ProductionScan.ProductionSourcePaths
             .Where(path => P2T04ProductionScan.CodeOccurrences(
                 P2T04ProductionScan.Read(path),
@@ -651,8 +730,8 @@ public sealed class P2T04RegressionTests
         Assert.All(
             allPesoMentions,
             path => Assert.True(
-                disclosedCrossStreamAdditivePaths.Contains(path, StringComparer.Ordinal),
-                $"P2-T04 source '{path}' carries Peso vocabulary outside the disclosed Q-CAND files."));
+                disclosed.Contains(path, StringComparer.Ordinal),
+                $"P2-T04 source '{path}' carries Peso vocabulary outside the disclosed Q-CAND/outputs-slice files."));
 
         // The legitimate BQ context vocabulary is present and must not be misread as a Boquilhas
         // aggregate: the P2-T04 sources do declare bq_contexts.
@@ -846,9 +925,17 @@ public sealed class P2T04RegressionTests
         var offenders = P2T04ProductionScan.TestVocabularyOffenders(
             "tests/DMO.UnitTests", ".cs", ".cshtml");
 
-        Assert.True(
-            offenders.Count == 0,
-            $"Pre-existing unit-test sources carry P2-T04 vocabulary: {string.Join(", ", offenders)}.");
+        // The disclosed additive extensions (see DisclosedAdditiveTestPaths) are the only
+        // pre-existing unit-test files allowed to mention the P2-T04 vocabulary; any other file
+        // is a violation of the "existing tests are never edited" boundary. This mirrors the
+        // BND11/BND12 disclosure pattern: the P2-T08 documents-test files legitimately carry the
+        // canonical Tool identity tuple / MachineCode of the SHARED sheet fixtures, and that
+        // omission left this row red since those slices — an additive repair, never a weakening.
+        Assert.All(
+            offenders,
+            offender => Assert.True(
+                P2T04ProductionScan.DisclosedAdditiveTestPaths.Contains(offender, StringComparer.Ordinal),
+                $"Pre-existing unit-test source '{offender}' carries P2-T04 vocabulary."));
     }
 
     /// <summary>

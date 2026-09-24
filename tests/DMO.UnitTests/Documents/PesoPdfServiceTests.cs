@@ -382,6 +382,13 @@ public sealed class PesoPdfServiceTests
             string fileName,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException("The generation unit tests never read stored files.");
+
+        public Task<PesoPdfFilePresenceResult> ExistsAsync(
+            string baseDirectory,
+            string relativeDirectory,
+            string fileName,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The generation unit tests never check stored files.");
     }
 
     internal sealed record PesoPdfFileWriteCall(

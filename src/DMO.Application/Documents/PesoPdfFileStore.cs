@@ -56,6 +56,43 @@ public interface IPesoPdfFileStore
         string relativeDirectory,
         string fileName,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reports whether the deterministic target holds the file WITHOUT reading its bytes (the
+    /// availability read of the outputs slice): <c>Missing</c> when the deterministic target holds
+    /// no file, <c>Failed</c> on any other IO failure — never conflated with missing.
+    /// </summary>
+    Task<PesoPdfFilePresenceResult> ExistsAsync(
+        string baseDirectory,
+        string relativeDirectory,
+        string fileName,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>The typed outcome of one byte-free presence check of a stored document.</summary>
+public sealed record PesoPdfFilePresenceResult(PesoPdfFilePresenceState State)
+{
+    /// <summary>The deterministic target holds the file.</summary>
+    public static PesoPdfFilePresenceResult Found() => new(PesoPdfFilePresenceState.Found);
+
+    /// <summary>The deterministic target holds no file.</summary>
+    public static PesoPdfFilePresenceResult Missing() => new(PesoPdfFilePresenceState.Missing);
+
+    /// <summary>Another infrastructure failure (permissions, IO) — not a missing file.</summary>
+    public static PesoPdfFilePresenceResult Failed() => new(PesoPdfFilePresenceState.Failed);
+}
+
+/// <summary>The typed presence states of the byte-free document check.</summary>
+public enum PesoPdfFilePresenceState
+{
+    /// <summary>The file exists at the deterministic target.</summary>
+    Found,
+
+    /// <summary>The deterministic target holds no file.</summary>
+    Missing,
+
+    /// <summary>Another IO failure — distinguishable from a missing file.</summary>
+    Failed,
 }
 
 /// <summary>The typed outcome of one Peso PDF attachment read.</summary>
@@ -228,6 +265,39 @@ public sealed class ServerHostPesoPdfFileStore : IPesoPdfFileStore
         catch (ArgumentException)
         {
             return Task.FromResult(PesoPdfFileReadResult.Failed());
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<PesoPdfFilePresenceResult> ExistsAsync(
+        string baseDirectory,
+        string relativeDirectory,
+        string fileName,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseDirectory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativeDirectory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        try
+        {
+            var target = Path.Combine(baseDirectory, relativeDirectory, fileName);
+
+            return Task.FromResult(File.Exists(target)
+                ? PesoPdfFilePresenceResult.Found()
+                : PesoPdfFilePresenceResult.Missing());
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Task.FromResult(PesoPdfFilePresenceResult.Failed());
+        }
+        catch (ArgumentException)
+        {
+            return Task.FromResult(PesoPdfFilePresenceResult.Failed());
+        }
+        catch (IOException)
+        {
+            return Task.FromResult(PesoPdfFilePresenceResult.Failed());
         }
     }
 }

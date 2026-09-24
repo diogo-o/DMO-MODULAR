@@ -634,6 +634,15 @@ public sealed class PesoPdfSendServiceTests
             Task.FromResult(_bytes is null
                 ? PesoPdfFileReadResult.Missing()
                 : PesoPdfFileReadResult.Found(_bytes));
+
+        public Task<PesoPdfFilePresenceResult> ExistsAsync(
+            string baseDirectory,
+            string relativeDirectory,
+            string fileName,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(_bytes is null
+                ? PesoPdfFilePresenceResult.Missing()
+                : PesoPdfFilePresenceResult.Found());
     }
 
     internal sealed class FakeEmailTransport : IEmailTransport

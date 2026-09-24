@@ -349,6 +349,17 @@ public sealed class P2T05RegressionTests
     /// P2-T05 vocabulary is inside the P2-T05 owned paths or is one of the documented additive
     /// files (Program.cs, PersistenceServiceCollectionExtensions.cs, the EF snapshot and the three
     /// sanctioned Q-CAND Job On application files) (AC-Y7).
+    /// <para>
+    /// <b>Outputs slice disclosed extension</b> (Peso outputs on the Job On sheet — this slice):
+    /// the Job On owned files of the outputs slice NECESSARILY carry the Peso vocabulary of what
+    /// they expose — the <c>jobon_id → peso_id</c> read projection and service, the controlled
+    /// <c>peso-pdf</c> open route and the sheet outputs section. They are disclosed as an accepted
+    /// extension of the P2-T05 owned surface (P2-T05 §31.1: the Peso reaches Controlo through the
+    /// Job On occurrence; <see cref="P2T05ProductionScan.DisclosedOutputsSliceSourcePaths"/>), and
+    /// each disclosed file is asserted below to REALLY carry the additive outputs vocabulary
+    /// (never vacuous) — the same files are disclosed for the P2-T04-side scan by the P2-T04 BND7
+    /// row. No other file gains the P2-T05 vocabulary.
+    /// </para>
     /// </summary>
     [Fact]
     public void BND9_TheChangedPathAllowListHoldsForEveryP2T05VocabularyMention()
@@ -374,6 +385,22 @@ public sealed class P2T05RegressionTests
             Assert.True(
                 P2T04ProductionScan.Exists(expected),
                 $"Expected P2-T05 path '{expected}' is missing.");
+        }
+
+        // The outputs-slice exclusion is real, not vacuous: every disclosed Job On outputs file
+        // exists and actually carries the additive Peso output vocabulary (the read projection /
+        // service contract / implementation / controlled peso-pdf open route / sheet section).
+        foreach (var path in P2T05ProductionScan.DisclosedOutputsSliceSourcePaths)
+        {
+            Assert.True(
+                P2T04ProductionScan.Exists(path),
+                $"Disclosed outputs-slice path '{path}' is missing.");
+
+            var source = P2T04ProductionScan.Read(path);
+
+            Assert.True(
+                source.Contains(string.Concat("Pe", "so"), StringComparison.Ordinal),
+                $"Disclosed outputs-slice path '{path}' does not carry the additive Peso output vocabulary.");
         }
     }
 

@@ -183,6 +183,15 @@ try
         return new SmtpEmailTransport(options);
     });
 
+    // ---- Controlo outputs on the Job On sheet (this slice: the Peso PDF) -----------------------
+    // The read-only projection service composes the occurrence, the related Pesos (Controlo-owned
+    // read seam over the real CM context rows) and the Peso PDF availability/content read
+    // (Documents area: configured base directory + deterministic naming + file store). The Job On
+    // surface never touches the filesystem and no absolute path ever crosses the application
+    // boundary; the open route is gated by the owning job-on-view policy.
+    builder.Services.AddScoped<IPesoPdfDocumentRead, PesoPdfDocumentReadService>();
+    builder.Services.AddScoped<IJobOnControlOutputsService, JobOnControlOutputsService>();
+
     // ---- P2-T07 Boquilhas: Registo + Novo + Histórico + Definições ----------------------------
     // The aggregate/movement service composing the closed P2-T04/P2-T05 application contracts
     // (Tool/Job On/repairer/assignments) and the Boquilhas repository; the Definições service
