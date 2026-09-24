@@ -2,6 +2,7 @@ using DMO.Application.ControloCreate;
 using DMO.Application.JobOn;
 using DMO.Application.Session;
 using DMO.Application.Tools;
+using DMO.Domain.Controlo;
 using DMO.Domain.Tools;
 using DMO.Web.Authorization;
 using DMO.Web.Frontend.Shared.Contracts;
@@ -395,33 +396,52 @@ public sealed class CreateModel : PageModel
                 ]))
             .ToList();
 
+        // The status token is the backend fact (the canonical §3.1 vocabulary): a submitted record
+        // is either awaiting the decision (pendente) or already decided (aprovado / nao_aprovado).
+        // Controlo_Create STATES the result of the decision on the same peso_id clearly in every
+        // case — a decided record stays read-only here and the app informs (never blocks): the
+        // correction of a rejected record returns through Approve's Reabrir, which restores this
+        // editable draft handoff.
+        var status = PesoStatusTokens.Parse(sheet.Status);
+        var awaitingDecision = sheet.SubmittedAt is not null && (status is null or PesoStatus.Pendente);
+        var decided = status is PesoStatus.Aprovado or PesoStatus.NaoAprovado;
+        var readOnly = awaitingDecision || decided;
+
         Rows = MeasurementRowsPresentation.Create(
-            IsSubmitted ? CommonState.Conflict : CommonState.Ready,
+            readOnly ? CommonState.Conflict : CommonState.Ready,
             "Leituras de peso de água",
             minimumRowCount: 1,
             rows,
             minimumViolationReason: "É necessário pelo menos uma leitura válida.",
-            structuralMutationAllowed: !IsSubmitted,
-            structuralMutationReason: IsSubmitted
-                ? "Este Peso já foi submetido para aprovação; as leituras são apresentadas em modo de leitura."
-                : null,
-            message: IsSubmitted ? "Este Peso já foi submetido para aprovação." : null);
+            structuralMutationAllowed: !readOnly,
+            structuralMutationReason: readOnly ? RowsReason(status) : null,
+            message: readOnly ? RowsMessage(status) : null);
 
         Results = new PesoResultsPresentation(sheet.Rows.ToList(), sheet.GlassDensityGCm3);
 
-        Status = RecordStatusPresentation.Create(
-            IsSubmitted ? "Pendente — submetido para aprovação" : "Pendente",
-            tone: IsSubmitted ? StatusTone.Neutral : StatusTone.Neutral);
+        Status = decided
+            ? RecordStatusPresentation.Create(
+                PesoStatusTokens.DisplayLabel(status!.Value),
+                tone: status == PesoStatus.Aprovado ? StatusTone.Success : StatusTone.Danger,
+                assistiveDescription: DecidedHint(status.Value))
+            : RecordStatusPresentation.Create(
+                awaitingDecision ? "Pendente — submetido para aprovação" : "Pendente",
+                tone: StatusTone.Neutral);
 
-        Actions = IsSubmitted
+        Actions = readOnly
             ? DecisionBarPresentation.Create(
                 CommonState.Conflict,
                 [
                     DecisionBarActionPresentation.Create(
-                        SharedActionPresentation.CreateDisabled("submit", "Submetido", "Este Peso já foi submetido para aprovação."),
+                        SharedActionPresentation.CreateDisabled(
+                            "submit",
+                            decided ? PesoStatusTokens.DisplayLabel(status!.Value) : "Submetido",
+                            decided ? SubmitReason(status!.Value) : "Este Peso já foi submetido para aprovação."),
                         DecisionBarActionGroup.Primary),
                 ],
-                message: "Este Peso já foi submetido para aprovação; a correção pertence ao fluxo de aprovação.")
+                message: decided
+                    ? SubmitMessage(status!.Value)
+                    : "Este Peso já foi submetido para aprovação; a correção pertence ao fluxo de aprovação.")
             : DecisionBarPresentation.Create(
                 CommonState.Ready,
                 [
@@ -439,6 +459,37 @@ public sealed class CreateModel : PageModel
                         DecisionBarActionGroup.Secondary),
                 ]);
     }
+
+    /// <summary>The rows-region read-only reason of a submitted/decided record (§8.6 presentation).</summary>
+    private static string RowsReason(PesoStatus? status) => status switch
+    {
+        PesoStatus.Aprovado => "Este Peso foi aprovado; as leituras são apresentadas em modo de leitura.",
+        PesoStatus.NaoAprovado => "Este Peso não foi aprovado; as leituras são apresentadas em modo de leitura.",
+        _ => "Este Peso já foi submetido para aprovação; as leituras são apresentadas em modo de leitura.",
+    };
+
+    /// <summary>The rows-region message of a submitted/decided record (§8.6 presentation).</summary>
+    private static string RowsMessage(PesoStatus? status) => status switch
+    {
+        PesoStatus.Aprovado => "Este Peso foi aprovado; nenhuma edição é possível em Controlo_Create.",
+        PesoStatus.NaoAprovado => "Este Peso não foi aprovado; aguarde o Reabrir em Aprovar para corrigir.",
+        _ => "Este Peso já foi submetido para aprovação.",
+    };
+
+    /// <summary>The assistive description of a decided status (result stated, never colour-only).</summary>
+    private static string DecidedHint(PesoStatus status) => status == PesoStatus.Aprovado
+        ? "Este Peso foi aprovado; a decisão está registada em Aprovar."
+        : "Este Peso não foi aprovado; depois de Reabrir em Aprovar pode corrigir e submeter novamente.";
+
+    /// <summary>The disabled-submit reason of a decided record (the result, plain and clear).</summary>
+    private static string SubmitReason(PesoStatus status) => status == PesoStatus.Aprovado
+        ? "Este Peso foi aprovado; não existem mais ações de edição em Controlo_Create."
+        : "Este Peso não foi aprovado; a correção é feita pelo responsável através de Reabrir em Aprovar.";
+
+    /// <summary>The decision-bar message of a decided record (inform; no artificial block).</summary>
+    private static string SubmitMessage(PesoStatus status) => status == PesoStatus.Aprovado
+        ? "Este Peso foi aprovado. O resultado da decisão é apresentado aqui; o histórico completo está em Aprovar."
+        : "Este Peso não foi aprovado. Depois de Reabrir em Aprovar, pode corrigir e submeter novamente a partir daqui.";
 
     private void BuildCreateRegions()
     {

@@ -273,6 +273,96 @@ public sealed class P2T06RenderingTests
     }
 
     /// <summary>
+    /// Owner slice (Create ← decision result): after the responsible decides on the SAME
+    /// <c>peso_id</c>, Controlo_Create states the result clearly — the canonical status
+    /// (Aprovado / Não aprovado) with the decision tone, the read-only presentation kept, and NO
+    /// misleading "submetido para aprovação" wording. A decided record is never re-editable from
+    /// Create; the correction path of a rejection (Reabrir em Aprovar) is stated — the app
+    /// informs and records, it never blocks.
+    /// </summary>
+    [Fact]
+    public async Task DEC_TheCreatePageStatesTheDecisionResultOfTheSamePesoClearly()
+    {
+        // Approved scenario (decision applied on the exact submitted peso).
+        var approvedComposition = new P2T06TestComposition();
+        var approvedId = await SeedSubmittedPesoAsync(approvedComposition, "DEC-OK");
+        var approvedPeso = (await approvedComposition.Pesos.GetByIdAsync(approvedId, CancellationToken.None))!;
+        await approvedComposition.Review.DecisionAsync(
+            new DMO.Domain.Controlo.PesoReviewDecision(
+                DMO.Domain.Controlo.PesoReviewDecisionId.New(),
+                DMO.Domain.Controlo.PesoId.From(approvedId),
+                DMO.Domain.Controlo.PesoReviewDecisionKind.Aprovado,
+                P2T06TestHost.ActorUserId,
+                DateTimeOffset.UtcNow,
+                Reason: null,
+                DMO.Domain.Controlo.PesoStatus.Pendente,
+                approvedPeso.Version,
+                DateTimeOffset.UtcNow),
+            expectedPesoVersion: approvedPeso.Version,
+            CancellationToken.None);
+
+        // Rejected scenario (decision + recorded reason on the exact submitted peso).
+        var rejectedComposition = new P2T06TestComposition();
+        var rejectedId = await SeedSubmittedPesoAsync(rejectedComposition, "DEC-NOK");
+        var rejectedPeso = (await rejectedComposition.Pesos.GetByIdAsync(rejectedId, CancellationToken.None))!;
+        await rejectedComposition.Review.DecisionAsync(
+            new DMO.Domain.Controlo.PesoReviewDecision(
+                DMO.Domain.Controlo.PesoReviewDecisionId.New(),
+                DMO.Domain.Controlo.PesoId.From(rejectedId),
+                DMO.Domain.Controlo.PesoReviewDecisionKind.NaoAprovado,
+                P2T06TestHost.ActorUserId,
+                DateTimeOffset.UtcNow,
+                "Leitura fora do esperado.",
+                DMO.Domain.Controlo.PesoStatus.Pendente,
+                rejectedPeso.Version,
+                DateTimeOffset.UtcNow),
+            expectedPesoVersion: rejectedPeso.Version,
+            CancellationToken.None);
+
+        using var approvedFactory = P2T06TestHost.ForUser(P2T06TestHost.CreateOnly(), approvedComposition);
+        using var approvedClient = approvedFactory.CreateClient();
+        using var approvedResponse = await P2T06TestHost.GetAsync(
+            approvedClient,
+            $"/controlo/create?pesoId={approvedId}");
+        Assert.Equal(HttpStatusCode.OK, approvedResponse.StatusCode);
+        var approvedHtml = await approvedResponse.Content.ReadAsStringAsync();
+
+        // Approved: canonical status + success tone; NO pending/submitted wording anywhere.
+        Assert.Equal("Aprovado", FactOf(approvedHtml, "data-dmo-status-text="));
+        Assert.Contains("data-dmo-status-tone=\"success\"", approvedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("submetido", approvedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Pendente", approvedHtml, StringComparison.Ordinal);
+
+        using var rejectedFactory = P2T06TestHost.ForUser(P2T06TestHost.CreateOnly(), rejectedComposition);
+        using var rejectedClient = rejectedFactory.CreateClient();
+        using var rejectedResponse = await P2T06TestHost.GetAsync(
+            rejectedClient,
+            $"/controlo/create?pesoId={rejectedId}");
+        Assert.Equal(HttpStatusCode.OK, rejectedResponse.StatusCode);
+        var rejectedHtml = await rejectedResponse.Content.ReadAsStringAsync();
+
+        // Rejected: canonical status (Razor hex-encodes the ã in the raw markup) + danger tone +
+        // the stated correction path; never presented as approved.
+        Assert.Equal("Não aprovado", FactOf(rejectedHtml, "data-dmo-status-text="));
+        Assert.Contains("data-dmo-status-tone=\"danger\"", rejectedHtml, StringComparison.Ordinal);
+        Assert.Contains("Reabrir em Aprovar", rejectedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("submetido", rejectedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-dmo-status-text=\"Aprovado\"", rejectedHtml, StringComparison.Ordinal);
+
+        // Both decided views keep the valid read-only presentation (D1 shape): only the disabled
+        // submit action remains, no edit actions, adapter state intact for the page JS.
+        foreach (var html in new[] { approvedHtml, rejectedHtml })
+        {
+            Assert.Contains("data-dmo-submitted=\"true\"", html, StringComparison.Ordinal);
+            Assert.Equal(1, Count(html, "data-dmo-action=\"submit\""));
+            Assert.Contains("data-dmo-action-reason=\"submit\"", html, StringComparison.Ordinal);
+            Assert.Equal(0, Count(html, "data-dmo-action=\"calculate\""));
+            Assert.Equal(0, Count(html, "data-dmo-action=\"save\""));
+            Assert.Contains("data-dmo-controlo-state", html, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
     /// The rendered display VALUE of one hook: finds the element tag carrying the hook, then reads
     /// the <c>value</c> attribute when the element is an input, else the element's text content
     /// (HTML-decoded).
@@ -303,6 +393,21 @@ public sealed class P2T06RenderingTests
         return close.Success
             ? System.Net.WebUtility.HtmlDecode(close.Groups["v"].Value.Trim())
             : string.Empty;
+    }
+
+    /// <summary>Counts non-overlapping occurrences of a fragment in rendered markup.</summary>
+    private static int Count(string html, string fragment)
+    {
+        var count = 0;
+        var index = 0;
+
+        while ((index = html.IndexOf(fragment, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += fragment.Length;
+        }
+
+        return count;
     }
 
     private static void AssertInOrder(string html, params string[] markers)
