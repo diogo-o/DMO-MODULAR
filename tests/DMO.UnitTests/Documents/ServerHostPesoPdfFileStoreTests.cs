@@ -99,6 +99,32 @@ public sealed class ServerHostPesoPdfFileStoreTests
             null!, "REF-A/2026-001", "Peso_REF-A_B1.pdf", [1], CancellationToken.None));
     }
 
+    [Fact]
+    public async Task Read_ReturnsTheStoredBytesAndDistinguishesMissingFromFailed()
+    {
+        using var directory = new TempDirectory();
+        var content = "STORED-PDF-BYTES"u8.ToArray();
+        await _store.WriteAsync(
+            directory.FullPath, "REF-A/2026-001", "Peso_REF-A_B1.pdf", content, CancellationToken.None);
+
+        // The deterministic target holds the file → Found with the exact stored bytes.
+        var found = await _store.ReadAsync(
+            directory.FullPath, "REF-A/2026-001", "Peso_REF-A_B1.pdf", CancellationToken.None);
+        Assert.Equal(PesoPdfFileReadState.Found, found.State);
+        Assert.Equal(content, found.Bytes);
+
+        // No file at the target → Missing (never conflated with a failed read).
+        var missing = await _store.ReadAsync(
+            directory.FullPath, "REF-B/2026-002", "Peso_REF-B_B1.pdf", CancellationToken.None);
+        Assert.Equal(PesoPdfFileReadState.Missing, missing.State);
+        Assert.Null(missing.Bytes);
+
+        // A missing/relative base is treated as missing (no file can exist under it).
+        var absentBase = await _store.ReadAsync(
+            Path.Combine(directory.FullPath, "no-such-base"), "REF-A/2026-001", "Peso_REF-A_B1.pdf", CancellationToken.None);
+        Assert.Equal(PesoPdfFileReadState.Missing, absentBase.State);
+    }
+
     /// <summary>A real temp directory that removes itself on dispose (best-effort).</summary>
     private sealed class TempDirectory : IDisposable
     {

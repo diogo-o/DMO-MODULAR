@@ -282,6 +282,34 @@ function createSurface(overrides = {}) {
     const pdfOutcome = new Element("div", { "data-dmo-peso-pdf-outcome": "true" });
     pdfOutcome.hidden = true;
     root.appendChild(pdfOutcome);
+
+    // The manual send region (revealed once a PDF output exists).
+    const sendRegion = new Element("div", {
+      "data-dmo-peso-pdf-send-region": "true",
+      "data-dmo-peso-pdf-list-value": overrides.pesoPdfSingleListId ?? "",
+    });
+    sendRegion.hidden = true;
+    root.appendChild(sendRegion);
+
+    if (overrides.pesoPdfMultiList) {
+      const select = new Element("select", { "data-dmo-peso-pdf-list": "true" });
+      const placeholder = new Element("option", { value: "" });
+      placeholder.textContent = "— selecionar lista —";
+      const listA = new Element("option", { value: "11111111-1111-1111-1111-111111111111" });
+      listA.textContent = "A";
+      const listB = new Element("option", { value: "22222222-2222-2222-2222-222222222222" });
+      listB.textContent = "B";
+      select.options = [placeholder, listA, listB];
+      root.appendChild(select);
+    }
+
+    const sendButton = new Element("button", { "data-dmo-peso-pdf-send": "true", "data-dmo-peso-pdf-send-pending": "A enviar…" });
+    sendButton.textContent = "Enviar PDF por email";
+    sendRegion.appendChild(sendButton);
+
+    const sendOutcome = new Element("div", { "data-dmo-peso-pdf-send-outcome": "true" });
+    sendOutcome.hidden = true;
+    sendRegion.appendChild(sendOutcome);
   }
 
   return root;
@@ -788,6 +816,160 @@ await scenario("S10 Peso PDF already-available and typed refusal handling", asyn
   assert.equal(region.getAttribute("data-dmo-conflict"), null, "a not-decided refusal is not a conflict");
   assert.equal(root2.querySelector("[data-dmo-peso-pdf]").disabled, false, "the button is restored after the refusal");
   assert.equal(windowStub2.reloadCalls, 0, "no reload on refusal");
+});
+
+// S11 — P2-T08 manual email send (single configured list applies automatically): the send
+// reveals next to the PDF output, posts the canonical peso_id + the applicable configured list
+// id, shows the evidence (recipient count, file, template), restores the button and never
+// reloads.
+await scenario("S11 Peso PDF manual send posts once, shows the evidence and never reloads", async () => {
+  const documentStub = createDocument();
+  const root = createSurface({
+    pesoId: "44444444-4444-4444-4444-444444444444",
+    version: 2,
+    submitted: true,
+    pesoPdfAction: true,
+    pesoPdfSingleListId: "33333333-3333-3333-3333-333333333333",
+    draftActions: ["submit"],
+  });
+  documentStub.roots.push(root);
+  const windowStub = createWindow();
+  const fetchStub = createFetch([
+    {
+      method: "POST",
+      pathPrefix: "/controlo/create/pesos/44444444-4444-4444-4444-444444444444/peso-pdf/send",
+      response: {
+        status: 200,
+        body: {
+          status: "sent",
+          pesoId: "44444444-4444-4444-4444-444444444444",
+          version: 2,
+          fileName: "Peso_ref-X_B1.pdf",
+          templateName: "Peso operação",
+          recipients: ["a@example.com", "b@example.com"],
+          sentAt: "2026-09-24T10:00:00Z",
+        },
+      },
+    },
+  ]);
+
+  loadAdapter(windowStub, documentStub, fetchStub);
+
+  const sendRegion = root.querySelector("[data-dmo-peso-pdf-send-region]");
+  const sendButton = root.querySelector("[data-dmo-peso-pdf-send]");
+  const sendOutcome = root.querySelector("[data-dmo-peso-pdf-send-outcome]");
+
+  sendButton.click();
+  assert.equal(sendButton.disabled, true, "pending state blocks a duplicate send while in flight");
+  assert.equal(sendButton.textContent, "A enviar…", "accessible name preserved while pending");
+  await flush();
+
+  assert.equal(fetchStub.calls.length, 1, "exactly ONE send request");
+  assert.equal(fetchStub.calls[0].method, "POST", "the send request is a POST");
+  assert.equal(fetchStub.calls[0].path,
+    "/controlo/create/pesos/44444444-4444-4444-4444-444444444444/peso-pdf/send",
+    "the request targets the manual-send route of the canonical peso_id");
+  assert.equal(fetchStub.calls[0].body.emailListId, "33333333-3333-3333-3333-333333333333",
+    "the applicable configured list id travels (no recipient address ever leaves the page)");
+  assert.equal(sendButton.disabled, false, "button restored after the response");
+  assert.equal(sendOutcome.hidden, false, "the send outcome region is revealed");
+  assert.match(sendOutcome.textContent,
+    /Email enviado para 2 destinatário\(s\) — ficheiro Peso_ref-X_B1\.pdf — template Peso operação\./,
+    "the evidence (recipient count, file, template) is shown");
+  assert.equal(windowStub.reloadCalls, 0, "a successful send does NOT reload the page");
+});
+
+// S12 — several configured lists: the operator selects the applicable one; without a selection
+// no request is sent (the adapter never guesses); with the selection the send proceeds.
+await scenario("S12 Peso PDF send requires the operator list selection when several lists exist", async () => {
+  const documentStub = createDocument();
+  const root = createSurface({
+    pesoId: "55555555-5555-5555-5555-555555555555",
+    version: 2,
+    submitted: true,
+    pesoPdfAction: true,
+    pesoPdfMultiList: true,
+    draftActions: ["submit"],
+  });
+  documentStub.roots.push(root);
+  const windowStub = createWindow();
+  const fetchStub = createFetch([
+    {
+      method: "POST",
+      pathPrefix: "/controlo/create/pesos/55555555-5555-5555-5555-555555555555/peso-pdf/send",
+      response: {
+        status: 200,
+        body: {
+          status: "sent",
+          pesoId: "55555555-5555-5555-5555-555555555555",
+          version: 2,
+          fileName: "Peso_ref-X_B1.pdf",
+          templateName: "Peso operação",
+          recipients: ["a@example.com"],
+          sentAt: "2026-09-24T10:05:00Z",
+        },
+      },
+    },
+  ]);
+
+  loadAdapter(windowStub, documentStub, fetchStub);
+
+  const sendButton = root.querySelector("[data-dmo-peso-pdf-send]");
+  const select = root.querySelector("[data-dmo-peso-pdf-list]");
+  const stateRegion = root.querySelector("[data-dmo-controlo-state]");
+
+  // No selection yet: the adapter blocks locally with the state information — no request.
+  sendButton.click();
+  await flush();
+  assert.equal(fetchStub.calls.length, 0, "no send without a list selection");
+  assert.equal(stateRegion.hidden, false, "the local state informs the missing selection");
+  assert.match(stateRegion.textContent, /Selecione a lista/, "the local notice asks for the selection");
+
+  // With the explicit selection of the applicable configured list: exactly ONE request.
+  select.value = "22222222-2222-2222-2222-222222222222";
+  sendButton.click();
+  await flush();
+  assert.equal(fetchStub.calls.length, 1, "exactly ONE send after the selection");
+  assert.equal(fetchStub.calls[0].body.emailListId, "22222222-2222-2222-2222-222222222222",
+    "the selected configured list id travels");
+  assert.equal(windowStub.reloadCalls, 0, "no reload after the send");
+});
+
+// S13 — a typed backend refusal (email-template-not-configured) enters the page-owned errors
+// presentation and restores the button.
+await scenario("S13 Peso PDF send typed refusal enters the errors presentation", async () => {
+  const documentStub = createDocument();
+  const root = createSurface({
+    pesoId: "66666666-6666-6666-6666-666666666666",
+    version: 2,
+    submitted: true,
+    pesoPdfAction: true,
+    pesoPdfSingleListId: "33333333-3333-3333-3333-333333333333",
+    draftActions: ["submit"],
+  });
+  documentStub.roots.push(root);
+  const windowStub = createWindow();
+  const fetchStub = createFetch([
+    {
+      method: "POST",
+      pathPrefix: "/controlo/create/pesos/66666666-6666-6666-6666-666666666666/peso-pdf/send",
+      response: { status: 409, body: { reason: "email-template-not-configured", message: "Sem template aplicável." } },
+    },
+  ]);
+
+  loadAdapter(windowStub, documentStub, fetchStub);
+
+  const sendButton = root.querySelector("[data-dmo-peso-pdf-send]");
+  const stateRegion = root.querySelector("[data-dmo-controlo-state]");
+
+  sendButton.click();
+  await flush();
+  assert.equal(fetchStub.calls.length, 1, "exactly ONE send request on the refusal");
+  assert.equal(stateRegion.hidden, false, "the typed refusal is surfaced");
+  assert.match(stateRegion.textContent, /email-template-not-configured/, "the typed reason is shown");
+  assert.equal(stateRegion.getAttribute("data-dmo-conflict"), null, "a config refusal is not a concurrency conflict");
+  assert.equal(sendButton.disabled, false, "the button is restored after the refusal");
+  assert.equal(windowStub.reloadCalls, 0, "no reload on refusal");
 });
 
 // ---------------------------------------------------------------------------------------------

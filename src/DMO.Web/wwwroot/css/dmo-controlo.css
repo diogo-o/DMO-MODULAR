@@ -318,3 +318,24 @@
   color: var(--dmo-color-text-secondary, #444);
   font-size: var(--dmo-font-size-sm, 0.8125rem);
 }
+
+/* P2-T08 manual email send of the existing Peso PDF (Create-owned operational work): revealed
+   next to the PDF output; the configured lists are the only recipient source. */
+.dmo-controlo__pdf-send {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--dmo-color-border-soft, #ccc);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dmo-controlo__pdf-send .dmo-controlo__label {
+  min-width: auto;
+}
+
+.dmo-controlo__pdf-send [data-dmo-peso-pdf-send]:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}

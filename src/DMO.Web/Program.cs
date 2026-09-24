@@ -159,14 +159,29 @@ try
     // registers availability (contract §13.3).
     builder.Services.AddScoped<IControloApproveService, ControloApproveService>();
 
-    // ---- P2-T08 documents: Peso PDF generation/storage (this slice) ---------------------------
+    // ---- P2-T08 documents: Peso PDF generation/storage + manual email send (this slice) ---------
     // The generation service composes the SHARED P2-T05 Peso read (the same read model Create and
     // Approve render), the configured pdf_directory_settings and the server-host workspace; the
-    // renderer and the file store are stateless adapters. No policy, no availability entry and no
-    // destination route is added here: the route is gated by the owning Controlo Approve policy.
+    // send service reuses the same read + the configured email templates/lists (single source of
+    // truth) and attaches the EXISTING generated PDF through the file store. The renderer and the
+    // file store are stateless adapters; the SMTP transport is bound from Email:Transport (plain
+    // values — no fail-fast at startup: sending is optional operational work, refused typed at
+    // send time when unconfigured). No policy, no availability entry and no destination route is
+    // added here: the routes are gated by the owning Controlo Create policy.
     builder.Services.AddScoped<IPesoPdfService, PesoPdfService>();
+    builder.Services.AddScoped<IPesoPdfSendService, PesoPdfSendService>();
     builder.Services.AddSingleton<IPesoPdfRenderer, PesoPdfRenderer>();
     builder.Services.AddSingleton<IPesoPdfFileStore, ServerHostPesoPdfFileStore>();
+    builder.Services.AddSingleton<IEmailTransport>(static provider =>
+    {
+        var options = new EmailTransportOptions();
+        provider
+            .GetRequiredService<IConfiguration>()
+            .GetSection(EmailTransportOptions.SectionName)
+            .Bind(options);
+
+        return new SmtpEmailTransport(options);
+    });
 
     // ---- P2-T07 Boquilhas: Registo + Novo + Histórico + Definições ----------------------------
     // The aggregate/movement service composing the closed P2-T04/P2-T05 application contracts

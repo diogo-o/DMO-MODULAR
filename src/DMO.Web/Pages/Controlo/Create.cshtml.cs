@@ -34,6 +34,7 @@ public sealed class CreateModel : PageModel
     private const string ShellContext = "Peso — criação/medição/submissão";
 
     private readonly IControloCreateService _controlo;
+    private readonly IControloDefinicoesService _definicoes;
     private readonly IJobOnService _jobOns;
     private readonly IProductionResumoRead _productionResumo;
     private readonly ICurrentAccountContext _currentAccount;
@@ -43,6 +44,7 @@ public sealed class CreateModel : PageModel
     /// <summary>Creates the page over the Controlo service, the composed Job On reads and the shell.</summary>
     public CreateModel(
         IControloCreateService controlo,
+        IControloDefinicoesService definicoes,
         IJobOnService jobOns,
         IProductionResumoRead productionResumo,
         ICurrentAccountContext currentAccount,
@@ -50,12 +52,14 @@ public sealed class CreateModel : PageModel
         ILogger<CreateModel> logger)
     {
         ArgumentNullException.ThrowIfNull(controlo);
+        ArgumentNullException.ThrowIfNull(definicoes);
         ArgumentNullException.ThrowIfNull(jobOns);
         ArgumentNullException.ThrowIfNull(productionResumo);
         ArgumentNullException.ThrowIfNull(currentAccount);
         ArgumentNullException.ThrowIfNull(shell);
         ArgumentNullException.ThrowIfNull(logger);
         _controlo = controlo;
+        _definicoes = definicoes;
         _jobOns = jobOns;
         _productionResumo = productionResumo;
         _currentAccount = currentAccount;
@@ -116,6 +120,14 @@ public sealed class CreateModel : PageModel
     /// shows filesystem paths, only the relative convention target.
     /// </summary>
     public bool CanGeneratePesoPdf { get; private set; }
+
+    /// <summary>
+    /// The configured email recipient lists (Definições — the single recipient source) shown next
+    /// to the Peso PDF output for the manual send action: one list applies automatically, several
+    /// require the operator's selection, zero is state info (the send button is disabled with the
+    /// reason). Never a hardcoded address.
+    /// </summary>
+    public IReadOnlyList<EmailListOptionPresentation> EmailLists { get; private set; } = [];
 
     /// <summary>Whether the draft is already submitted (Create-side mutations closed).</summary>
     public bool IsSubmitted { get; private set; }
@@ -302,6 +314,24 @@ public sealed class CreateModel : PageModel
             process: ToolSummaryFactPresentation.Create("Processo", ToolTokens.ToToken(cm.Processo) ?? "—"),
             quantity: ToolSummaryFactPresentation.Create("Quantidade", cm.Quantity?.ToString() ?? "—"));
 
+    /// <summary>Loads the configured email lists (Definições — the single recipient source) for the
+    /// manual send action next to the Peso PDF output. A failed lookup is shown as state info
+    /// (never an invented list).</summary>
+    private async Task LoadEmailListsAsync(CancellationToken cancellationToken)
+    {
+        var result = await _definicoes.ListEmailListsAsync(cancellationToken);
+
+        if (result is SettingsResult.EmailListsFound(var lists))
+        {
+            EmailLists = lists
+                .Select(list => new EmailListOptionPresentation(
+                    list.EmailListId,
+                    list.Name,
+                    list.RecipientCount))
+                .ToList();
+        }
+    }
+
     private async Task<IReadOnlyList<CandidateEntry>> LoadCandidatesAsync(
         Guid? toolId,
         CancellationToken cancellationToken)
@@ -350,6 +380,11 @@ public sealed class CreateModel : PageModel
         var draftStatus = PesoStatusTokens.Parse(sheet.Status);
         CanGeneratePesoPdf = draftStatus is PesoStatus.Aprovado or PesoStatus.NaoAprovado
             && sheet.Production is not null;
+
+        if (CanGeneratePesoPdf)
+        {
+            await LoadEmailListsAsync(cancellationToken);
+        }
 
         Strip = sheet.Production is { } production
             ? new ProductionStripModel(
@@ -590,6 +625,13 @@ public sealed record CandidateEntry(
     string Reference,
     string ProductionNumber,
     string Machine);
+
+/// <summary>R8 — one configured email recipient list shown for the manual send action (the
+/// presentation of the Definições data; never a hardcoded address).</summary>
+public sealed record EmailListOptionPresentation(
+    Guid EmailListId,
+    string Name,
+    int RecipientCount);
 
 /// <summary>R5 — the per-row results presentation (individual results first-class; derived
 /// averages/deviations never hide an individual result, §5.3/AC-M8).</summary>

@@ -538,11 +538,13 @@ if (!window.dmoControlo) {
      * name + relative convention target) — never a filesystem path. A repeated invocation on an
      * already-generated target answers "já disponível" (the backend never overwrites). Refusals
      * enter the page-owned failure presentation (typed reason); pending state prevents duplicate
-     * invocation while keeping the accessible name.
+     * invocation while keeping the accessible name. Once a PDF exists (gerado / já disponível)
+     * the manual-send region reveals next to it.
      */
     function wirePesoPdf(root) {
       var button = root.querySelector("[data-dmo-peso-pdf]");
       var outcome = root.querySelector("[data-dmo-peso-pdf-outcome]");
+      var sendRegion = root.querySelector("[data-dmo-peso-pdf-send-region]");
       if (!button || !outcome) { return; }
 
       button.addEventListener("click", function () {
@@ -574,6 +576,72 @@ if (!window.dmoControlo) {
             paragraph.textContent = "PDF gerado: " + payload.fileName + " — " + payload.relativePath + ".";
           }
           outcome.appendChild(paragraph);
+
+          // The manual send reveals next to the existing PDF output (the user decides when to
+          // send; the configured lists/template are the only recipient/template source).
+          if (sendRegion) { sendRegion.hidden = false; }
+        });
+      });
+
+      wirePesoPdfSend(root);
+    }
+
+    /**
+     * Wires the manual email send of the EXISTING Peso PDF (P2-T08 documents slice): posts ONLY
+     * the canonical peso_id + the applicable configured list id (when the configuration does not
+     * determine a single list). The backend resolves the template/list exclusively from the
+     * Definições data, attaches the existing PDF and NEVER regenerates it. The outcome shows the
+     * evidence (file, template, recipient count); typed refusals enter the page-owned errors
+     * presentation; pending state prevents duplicate sends; no reload is performed.
+     */
+    function wirePesoPdfSend(root) {
+      var sendButton = root.querySelector("[data-dmo-peso-pdf-send]");
+      var sendOutcome = root.querySelector("[data-dmo-peso-pdf-send-outcome]");
+      var sendRegion = root.querySelector("[data-dmo-peso-pdf-send-region]");
+      if (!sendButton || !sendOutcome) { return; }
+
+      sendButton.addEventListener("click", function () {
+        var state = anchors(root);
+        if (!state.pesoId || sendButton.disabled) { return; }
+
+        var emailListId = null;
+        if (sendRegion && sendRegion.getAttribute("data-dmo-peso-pdf-list-value")) {
+          emailListId = sendRegion.getAttribute("data-dmo-peso-pdf-list-value");
+        } else {
+          var select = root.querySelector("[data-dmo-peso-pdf-list]");
+          if (select) {
+            emailListId = select.value || null;
+            if (!emailListId) {
+              renderErrors(root, { errors: ["Selecione a lista de destinatários aplicável."] });
+              return;
+            }
+          }
+        }
+
+        var original = sendButton.textContent;
+        var pending = sendButton.getAttribute("data-dmo-peso-pdf-send-pending") || original;
+        sendButton.textContent = pending;
+        sendButton.disabled = true;
+
+        var payload = emailListId ? { emailListId: emailListId } : {};
+        api(basePath + "/pesos/" + state.pesoId + "/peso-pdf/send", "POST", payload).then(function (response) {
+          sendButton.textContent = original;
+          sendButton.disabled = false;
+
+          if (!response.ok) {
+            renderMutationFailure(root, response);
+            return;
+          }
+
+          var payload = response.body || {};
+          sendOutcome.hidden = false;
+          sendOutcome.removeAttribute("role");
+          sendOutcome.textContent = "";
+          var paragraph = document.createElement("p");
+          var recipientCount = payload.recipients ? payload.recipients.length : 0;
+          paragraph.textContent = "Email enviado para " + recipientCount + " destinatário(s) — " +
+            "ficheiro " + payload.fileName + " — template " + payload.templateName + ".";
+          sendOutcome.appendChild(paragraph);
         });
       });
     }

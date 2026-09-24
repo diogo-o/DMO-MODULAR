@@ -375,6 +375,13 @@ public sealed class PesoPdfServiceTests
                 PesoPdfFileWriteState.Written,
                 content.LongLength));
         }
+
+        public Task<PesoPdfFileReadResult> ReadAsync(
+            string baseDirectory,
+            string relativeDirectory,
+            string fileName,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The generation unit tests never read stored files.");
     }
 
     internal sealed record PesoPdfFileWriteCall(

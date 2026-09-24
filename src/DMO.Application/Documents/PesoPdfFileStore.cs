@@ -45,6 +45,43 @@ public interface IPesoPdfFileStore
         string fileName,
         byte[] content,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reads the bytes of an EXISTING stored file (the attachment read of the email slice):
+    /// <c>Missing</c> when the deterministic target holds no file (never regenerated for
+    /// sending), <c>Failed</c> on any other IO failure — never conflated with missing.
+    /// </summary>
+    Task<PesoPdfFileReadResult> ReadAsync(
+        string baseDirectory,
+        string relativeDirectory,
+        string fileName,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>The typed outcome of one Peso PDF attachment read.</summary>
+public sealed record PesoPdfFileReadResult(PesoPdfFileReadState State, byte[]? Bytes)
+{
+    /// <summary>Creates the found-file outcome.</summary>
+    public static PesoPdfFileReadResult Found(byte[] bytes) => new(PesoPdfFileReadState.Found, bytes);
+
+    /// <summary>The deterministic target holds no file.</summary>
+    public static PesoPdfFileReadResult Missing() => new(PesoPdfFileReadState.Missing, null);
+
+    /// <summary>Another infrastructure failure (permissions, IO) — not a missing file.</summary>
+    public static PesoPdfFileReadResult Failed() => new(PesoPdfFileReadState.Failed, null);
+}
+
+/// <summary>The typed read states of the attachment read.</summary>
+public enum PesoPdfFileReadState
+{
+    /// <summary>The file exists and its bytes were read.</summary>
+    Found,
+
+    /// <summary>The deterministic target holds no file.</summary>
+    Missing,
+
+    /// <summary>Another IO failure — distinguishable from a missing file.</summary>
+    Failed,
 }
 
 /// <summary>
@@ -148,6 +185,49 @@ public sealed class ServerHostPesoPdfFileStore : IPesoPdfFileStore
             return Task.FromResult(new PesoPdfFileWriteResult(
                 PesoPdfFileWriteState.WorkspaceUnavailable,
                 Bytes: 0));
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<PesoPdfFileReadResult> ReadAsync(
+        string baseDirectory,
+        string relativeDirectory,
+        string fileName,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseDirectory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativeDirectory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        try
+        {
+            if (!Path.IsPathRooted(baseDirectory)
+                || File.Exists(baseDirectory)
+                || !Directory.Exists(baseDirectory))
+            {
+                return Task.FromResult(PesoPdfFileReadResult.Missing());
+            }
+
+            var target = Path.Combine(baseDirectory, relativeDirectory, fileName);
+
+            if (!File.Exists(target))
+            {
+                return Task.FromResult(PesoPdfFileReadResult.Missing());
+            }
+
+            return Task.FromResult(PesoPdfFileReadResult.Found(File.ReadAllBytes(target)));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Task.FromResult(PesoPdfFileReadResult.Failed());
+        }
+        catch (IOException)
+        {
+            return Task.FromResult(PesoPdfFileReadResult.Failed());
+        }
+        catch (ArgumentException)
+        {
+            return Task.FromResult(PesoPdfFileReadResult.Failed());
         }
     }
 }
