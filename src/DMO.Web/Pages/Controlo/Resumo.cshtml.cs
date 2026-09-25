@@ -131,7 +131,7 @@ public sealed class ResumoModel : PageModel
     public bool CanViewHistorico { get; private set; }
 
     /// <summary>The secondary Controlo tab strip (Resumo first; unavailable areas stated, never faked).</summary>
-    public IReadOnlyList<ResumoTabPresentation> Tabs { get; private set; } = [];
+    public IReadOnlyList<ControloTabPresentation> Tabs { get; private set; } = [];
 
     /// <summary>The reference the lookup ran with (form round-trip).</summary>
     public string? LookupReference { get; private set; }
@@ -139,7 +139,18 @@ public sealed class ResumoModel : PageModel
     /// <summary>The Peso tab/card target: the existing Peso surface, anchored when a production is selected.</summary>
     public string PesoHref => Resumo is { } resumo
         ? $"/controlo/create?jobonId={resumo.JobOnId}"
-        : "/controlo/create";
+        : ControloTabs.PesoRoute;
+
+    /// <summary>
+    /// The Histórico tab target: the existing Histórico de Pesos surface, carrying the selected
+    /// production identity (referência / produção / máquina) through the Histórico page's own GET
+    /// filter contract so the operator lands on the matching history rows. No new state mechanism.
+    /// </summary>
+    public string HistoricoHref => Strip is { } strip
+        ? $"{ControloTabs.HistoricoRoute}?reference={Uri.EscapeDataString(strip.Reference)}" +
+          $"&productionNumber={Uri.EscapeDataString(strip.ProductionNumber)}" +
+          $"&machine={Uri.EscapeDataString(strip.Machine)}"
+        : ControloTabs.HistoricoRoute;
 
     /// <inheritdoc />
     public async Task OnGetAsync(CancellationToken cancellationToken)
@@ -370,20 +381,13 @@ public sealed class ResumoModel : PageModel
 
     private void BuildTabs()
     {
-        Tabs =
-        [
-            ResumoTabPresentation.Current("Resumo", "/controlo/resumo"),
-            ResumoTabPresentation.Link("Peso", PesoHref),
-            ResumoTabPresentation.UnavailableTab(
-                "Comparação", "A Comparação ainda não está disponível neste build."),
-            ResumoTabPresentation.UnavailableTab(
-                "Pegamentos", "Os Pegamentos ainda não estão disponíveis neste build."),
-            CanViewHistorico
-                ? ResumoTabPresentation.Link("Histórico", "/controlo/approve/historico")
-                : ResumoTabPresentation.UnavailableTab(
-                    "Histórico", "O Histórico de Pesos requer a concessão Controlo Approve."),
-            ResumoTabPresentation.Link("Definições", "/controlo/create/definicoes"),
-        ];
+        Tabs = ControloTabs.Build(
+            ControloTabs.ResumoKey,
+            canCreate: true,
+            canApprove: CanViewHistorico,
+            resumoHref: ControloTabs.ResumoRoute,
+            pesoHref: PesoHref,
+            historicoHref: HistoricoHref);
     }
 }
 
@@ -408,35 +412,3 @@ public sealed record ResumoStripModel(
     string? CmReference,
     string? Processo,
     string? Lot);
-
-/// <summary>One secondary Controlo tab: a real route, the current tab, or a stated unavailable area.</summary>
-public sealed record ResumoTabPresentation(
-    string Key,
-    string Label,
-    string? Href,
-    bool IsCurrent,
-    string? DisabledReason)
-{
-    /// <summary>The tab this page renders (the current route, marked current for accessibility).</summary>
-    public static ResumoTabPresentation Current(string label, string href) =>
-        new(ToKey(label), label, href, true, null);
-
-    /// <summary>A tab that navigates to a real existing route.</summary>
-    public static ResumoTabPresentation Link(string label, string href) =>
-        new(ToKey(label), label, href, false, null);
-
-    /// <summary>A tab for an area this build does not serve, with the truthful reason.</summary>
-    public static ResumoTabPresentation UnavailableTab(string label, string reason) =>
-        new(ToKey(label), label, null, false, reason);
-
-    /// <summary>Whether the tab navigates anywhere (only real routes do).</summary>
-    public bool IsAvailable => !IsCurrent && !string.IsNullOrWhiteSpace(Href);
-
-    private static string ToKey(string label) => label
-        .ToLowerInvariant()
-        .Replace("ç", "c", StringComparison.Ordinal)
-        .Replace("ã", "a", StringComparison.Ordinal)
-        .Replace("õ", "o", StringComparison.Ordinal)
-        .Replace("é", "e", StringComparison.Ordinal)
-        .Replace("í", "i", StringComparison.Ordinal);
-}

@@ -23,6 +23,29 @@
     exists (AC-H3). The detail (H3) is the same review sheet as the Aprovar surface.
 *@
 <section class="dmo-controlo-approve" data-dmo-approve-surface="historico" data-dmo-approve-root="true">
+
+    @* ---- Secondary Controlo tabs (Histórico is the current tab; shared with Resumo) --------- *@
+    <nav class="dmo-secondary-nav" aria-label="Áreas do Controlo" data-dmo-controlo-tabs="true">
+        @foreach (var tab in Model.Tabs)
+        {
+            if (tab.IsCurrent)
+            {
+                <a href="@tab.Href" aria-current="page" data-dmo-controlo-tab="@tab.Key">@tab.Label</a>
+            }
+            else if (tab.IsAvailable)
+            {
+                <a href="@tab.Href" data-dmo-controlo-tab="@tab.Key">@tab.Label</a>
+            }
+            else
+            {
+                <span aria-disabled="true"
+                      title="@tab.DisabledReason"
+                      data-dmo-controlo-tab="@tab.Key"
+                      data-dmo-controlo-tab-unavailable="@tab.DisabledReason">@tab.Label</span>
+            }
+        }
+    </nav>
+
     @* ---- H1 — Filters (the §15.2 set; backend-applied) ------------------------------------ *@
     <div class="dmo-approve__region" data-dmo-approve-region="filters" aria-label="Filtros">
         <form class="dmo-approve__filters" method="get" action="/controlo/approve/historico" data-dmo-approve-filters="true">

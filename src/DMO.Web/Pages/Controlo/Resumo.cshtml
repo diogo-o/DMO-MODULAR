@@ -26,23 +26,23 @@
 <section class="dmo-controlo" data-dmo-controlo-surface="resumo" data-dmo-resumo-surface="true">
 
     @* ---- Secondary Controlo tabs (Resumo is the first/landing tab) ------------------------- *@
-    <nav class="dmo-secondary-nav" aria-label="Áreas do Controlo" data-dmo-resumo-tabs="true">
+    <nav class="dmo-secondary-nav" aria-label="Áreas do Controlo" data-dmo-controlo-tabs="true">
         @foreach (var tab in Model.Tabs)
         {
             if (tab.IsCurrent)
             {
-                <a href="@tab.Href" aria-current="page" data-dmo-resumo-tab="@tab.Key">@tab.Label</a>
+                <a href="@tab.Href" aria-current="page" data-dmo-controlo-tab="@tab.Key">@tab.Label</a>
             }
             else if (tab.IsAvailable)
             {
-                <a href="@tab.Href" data-dmo-resumo-tab="@tab.Key">@tab.Label</a>
+                <a href="@tab.Href" data-dmo-controlo-tab="@tab.Key">@tab.Label</a>
             }
             else
             {
                 <span aria-disabled="true"
                       title="@tab.DisabledReason"
-                      data-dmo-resumo-tab="@tab.Key"
-                      data-dmo-resumo-tab-unavailable="@tab.DisabledReason">@tab.Label</span>
+                      data-dmo-controlo-tab="@tab.Key"
+                      data-dmo-controlo-tab-unavailable="@tab.DisabledReason">@tab.Label</span>
             }
         }
     </nav>

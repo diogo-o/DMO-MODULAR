@@ -1,3 +1,5 @@
+using DMO.Application.Access;
+using DMO.Application.Accounts;
 using DMO.Application.ControloApprove;
 using DMO.Application.ControloCreate;
 using DMO.Application.Session;
@@ -31,22 +33,26 @@ public sealed class ApproveHistoricoModel : PageModel
     private const string ShellContext = "Controlo Approve â€” histórico local de Pesos";
 
     private readonly IControloApproveService _service;
+    private readonly IModuleAccessService _access;
     private readonly ICurrentAccountContext _currentAccount;
     private readonly ShellPresentationService _shell;
     private readonly ILogger<ApproveHistoricoModel> _logger;
 
-    /// <summary>Creates the page over the review service, the current account and the shell.</summary>
+    /// <summary>Creates the page over the review service, access, the current account and the shell.</summary>
     public ApproveHistoricoModel(
         IControloApproveService service,
+        IModuleAccessService access,
         ICurrentAccountContext currentAccount,
         ShellPresentationService shell,
         ILogger<ApproveHistoricoModel> logger)
     {
         ArgumentNullException.ThrowIfNull(service);
+        ArgumentNullException.ThrowIfNull(access);
         ArgumentNullException.ThrowIfNull(currentAccount);
         ArgumentNullException.ThrowIfNull(shell);
         ArgumentNullException.ThrowIfNull(logger);
         _service = service;
+        _access = access;
         _currentAccount = currentAccount;
         _shell = shell;
         _logger = logger;
@@ -146,6 +152,12 @@ public sealed class ApproveHistoricoModel : PageModel
         var current = await _currentAccount.GetCurrentAsync(cancellationToken);
         ViewData["DmoShell"] = await _shell.BuildAsync(current, ShellTitle, ShellContext, cancellationToken);
 
+        CanCreate = current is CurrentAccount.User(var user)
+            && await _access.HasModuleAsync(
+                new AccountResolution.User(user), ModuleCatalog.ControloCreate, cancellationToken);
+
+        BuildTabs(CanCreate);
+
         if (PesoId is { } pesoId)
         {
             await LoadReviewSheetAsync(pesoId, cancellationToken);
@@ -153,6 +165,9 @@ public sealed class ApproveHistoricoModel : PageModel
 
         await LoadHistoryAsync(cancellationToken);
     }
+
+    /// <summary>Whether the caller also holds <c>controlo-create</c> (gates the create-side tabs).</summary>
+    public bool CanCreate { get; private set; }
 
     private async Task LoadHistoryAsync(CancellationToken cancellationToken)
     {
@@ -369,6 +384,43 @@ public sealed class ApproveHistoricoModel : PageModel
 
     private static string? Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>
+    /// Back-link to the Controlo landing surface. When the active filters name the production
+    /// identity (referência + produção), the link re-opens the Resumo of that exact production
+    /// through the Resumo route's own direct-link contract (<c>?ref=…&amp;production=…</c>) —
+    /// no new state mechanism, the existing query contracts of both routes do the round-trip.
+    /// </summary>
+    public string ResumoHref
+    {
+        get
+        {
+            var reference = Normalize(Reference);
+            if (reference is null)
+            {
+                return ControloTabs.ResumoRoute;
+            }
+
+            var production = Normalize(ProductionNumber);
+            return production is null
+                ? $"{ControloTabs.ResumoRoute}?ref={Uri.EscapeDataString(reference)}"
+                : $"{ControloTabs.ResumoRoute}?ref={Uri.EscapeDataString(reference)}&production={Uri.EscapeDataString(production)}";
+        }
+    }
+
+    /// <summary>The secondary Controlo tab strip, with Histórico as the current tab.</summary>
+    public IReadOnlyList<ControloTabPresentation> Tabs { get; private set; } = [];
+
+    private void BuildTabs(bool canCreate)
+    {
+        Tabs = ControloTabs.Build(
+            ControloTabs.HistoricoKey,
+            canCreate: canCreate,
+            canApprove: true,
+            resumoHref: ResumoHref,
+            pesoHref: ControloTabs.PesoRoute,
+            historicoHref: ControloTabs.HistoricoRoute);
+    }
 
     private static DenseTableColumnPresentation Column(string key, string heading) =>
         DenseTableColumnPresentation.Create(key, heading, alignment: DenseTableColumnAlignment.Start);

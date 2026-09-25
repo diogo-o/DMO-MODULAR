@@ -44,8 +44,8 @@ public sealed class ControloResumoPageTests
             Assert.Contains("data-dmo-resumo-lookup=\"true\"", html, StringComparison.Ordinal);
             Assert.Contains("data-dmo-strip-empty=\"true\"", html, StringComparison.Ordinal);
             // The secondary Controlo tabs render with Resumo current.
-            Assert.Contains("data-dmo-resumo-tabs=\"true\"", html, StringComparison.Ordinal);
-            Assert.Contains("data-dmo-resumo-tab=\"peso\"", html, StringComparison.Ordinal);
+            Assert.Contains("data-dmo-controlo-tabs=\"true\"", html, StringComparison.Ordinal);
+            Assert.Contains("data-dmo-controlo-tab=\"peso\"", html, StringComparison.Ordinal);
             // No production is selected: no sheet facts are fabricated.
             Assert.DoesNotContain("data-dmo-strip-reference", html, StringComparison.Ordinal);
         }
@@ -230,9 +230,9 @@ public sealed class ControloResumoPageTests
 
         // The tabs expose only real routes: Peso and Definições are links; Comparação and
         // Pegamentos render as truthful unavailable states, never as dead links.
-        Assert.Contains("data-dmo-resumo-tab=\"peso\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-dmo-controlo-tab=\"peso\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"/controlo/create/definicoes\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-dmo-resumo-tab-unavailable=", html, StringComparison.Ordinal);
+        Assert.Contains("data-dmo-controlo-tab-unavailable=", html, StringComparison.Ordinal);
     }
 
     private static int Occurrences(string haystack, string needle) =>
