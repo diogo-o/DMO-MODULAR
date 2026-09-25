@@ -1,13 +1,11 @@
 @page "/controlo/approve"
 @model DMO.Web.Pages.Controlo.Approve.ApproveIndexModel
 @using DMO.Web.Frontend.Shared.Contracts
-@using DMO.Web.Pages.Controlo
 @{
     ViewData["Title"] = "Aprovar";
 }
 <partial name="~/Pages/Shared/Components/_SharedComponentAssets.cshtml" />
 <link rel="stylesheet" href="~/css/dmo-controlo-approve.css" asp-append-version="true" />
-<link rel="stylesheet" href="~/css/dmo-controlo.css" asp-append-version="true" />
 <script src="~/js/dmo-controlo-approve.js" defer></script>
 
 @*
@@ -163,9 +161,6 @@
                 <span>Submetido por @sheet.Peso.SubmittedByUserId (utilizador backend, nunca sintetizado).</span>
             </div>
         </div>
-
-        @* ---- R3b — Comparação workspace (same peso_id, read-only measurement context) ------- *@
-        <partial name="~/Pages/Controlo/Shared/_ComparacaoWorkspace.cshtml" model="Model.Comparacao" />
 
         @* ---- R4 — Decision region (DecisionBar + reason input + send affordance) ---------- *@
         <div class="dmo-approve__region" data-dmo-approve-region="actions" aria-label="Decisão">

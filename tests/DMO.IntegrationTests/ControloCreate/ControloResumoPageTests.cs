@@ -228,15 +228,16 @@ public sealed class ControloResumoPageTests
         Assert.Contains("data-dmo-strip-lot=\"true\">LOTE-REAL", html, StringComparison.Ordinal);
         Assert.Contains("data-dmo-strip-processo=\"true\">NNPB", html, StringComparison.Ordinal);
 
-        // The tabs expose real routes: Peso, Comparação and Definições are links; Pegamentos
-        // renders as a truthful unavailable state. Comparação resolves to the Peso Create surface
-        // (same production context) — never a standalone comparison route.
+        // The tabs expose real routes: Peso and Definições are links; Pegamentos renders as a
+        // truthful unavailable state. Comparação is NOT a Controlo destination — the comparison
+        // workflow is the Peso-during-production process served inside the Peso Create surface
+        // (same peso_id), so no tab and no standalone route exist for it.
         Assert.Contains("data-dmo-controlo-tab=\"peso\"", html, StringComparison.Ordinal);
         Assert.Contains($"href=\"/controlo/create?jobonId={jobOn.JobOnId.Value}\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-dmo-controlo-tab=\"comparacao\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"/controlo/create/definicoes\"", html, StringComparison.Ordinal);
         Assert.Contains("data-dmo-controlo-tab=\"pegamentos\"", html, StringComparison.Ordinal);
         Assert.Contains("data-dmo-resumo-pegamentos-unavailable=\"true\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-dmo-controlo-tab=\"comparacao\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("/controlo/comparacao", html, StringComparison.Ordinal);
     }
 

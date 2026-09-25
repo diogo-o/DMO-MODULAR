@@ -238,6 +238,21 @@ internal static class P2T05ProductionScan
     ];
 
     /// <summary>
+    /// The ONE P2-T05 owned path disclosed from the BND7 scope-boundary token scan: the Resumo
+    /// landing page itself (<c>Resumo.cshtml.cs</c>) legitimately renders the accepted plural
+    /// display title <c>Resumos desta referência</c> (the production-switcher heading of the owned
+    /// Resumo surface, P2-T05 UI). That display text collides by shape with the plural identity
+    /// token <c>resumos</c>, but it is user-visible text, not a table/column/type/route identity —
+    /// the BND7 identity scan must not flag the owned page for its own accepted heading. Only this
+    /// single owned display surface is disclosed and the row asserts the disclosure is never
+    /// vacuous (the file exists and really carries the accepted title); the forbidden vocabulary
+    /// stays untouched for every other path. This mirrors the P2-T04-side pairing, whose BND7 row
+    /// discloses its own later-stream additive files the same way (P2-T04 BND7).
+    /// </summary>
+    public const string DisclosedResumoSurfaceDisplayPath =
+        "src/DMO.Web/Pages/Controlo/Resumo.cshtml.cs";
+
+    /// <summary>
     /// The snapshot-engine vocabulary (SNA5/AC-H3): no generic snapshot table/engine and no copy of
     /// live Tool values into Peso rows exists.
     /// </summary>

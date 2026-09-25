@@ -96,9 +96,6 @@ public sealed class CreateModel : PageModel
     /// <summary>The opened draft Peso sheet (real persisted facts; <c>null</c> in create mode).</summary>
     public PesoSheetReadModel? Draft { get; private set; }
 
-    /// <summary>The shared Comparação workspace view of the opened draft (same <c>peso_id</c>, no duplicated data).</summary>
-    public ComparacaoWorkspaceModel? Comparacao => ComparacaoWorkspaceModel.FromPeso(Draft);
-
     /// <summary>R4/R5 — the measurement rows region (P2-T03 mechanics, at-least-one).</summary>
     public MeasurementRowsPresentation Rows { get; private set; } = null!;
 

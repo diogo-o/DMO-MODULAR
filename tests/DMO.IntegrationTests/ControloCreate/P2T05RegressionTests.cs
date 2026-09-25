@@ -272,21 +272,44 @@ public sealed class P2T05RegressionTests
     /// BND7 (S) — no Comparação/Pegamentos/Folha/Resumo table, column, type or route exists in the
     /// P2-T05 sources (Q-SCOPE seam, AC-Y5). The legitimate email-template <c>document_type</c>
     /// CHECK values are contracted and are not scanned as identity forms.
+    /// <para>
+    /// <b>Owned display-surface disclosure</b>: the ONE P2-T05 owned page that legitimately renders
+    /// the accepted plural title <c>Resumos desta referência</c> (the Resumo landing page's
+    /// production-switcher heading) is excluded from this row's identity-token scan — the title is
+    /// user-visible text, not an identity (<see cref="P2T05ProductionScan.DisclosedResumoSurfaceDisplayPath"/>).
+    /// The exclusion is asserted to be never vacuous: the file exists and really carries the
+    /// accepted display title.
+    /// </para>
     /// </summary>
     [Fact]
     public void BND7_NoComparacaoPegamentosFolhaResumoIdentityExists()
     {
+        var disclosed = new[] { P2T05ProductionScan.DisclosedResumoSurfaceDisplayPath };
+
         foreach (var token in P2T05ProductionScan.ScopeBoundaryTokens)
         {
             var offenders = P2T05ProductionScan.ProductionSourcePaths
                 .Where(path => P2T04ProductionScan.CodeOccurrences(
                     P2T04ProductionScan.Read(path),
                     token).Count > 0)
+                .Where(path => !disclosed.Contains(path, StringComparer.Ordinal))
                 .ToList();
 
             Assert.True(
                 offenders.Count == 0,
                 $"The scope-boundary token '{token}' appears in code/markup of: {string.Join(", ", offenders)}.");
+        }
+
+        // The owned display-surface disclosure is real, not vacuous: the disclosed file exists and
+        // really carries the accepted plural display title — no other path is excused from the
+        // identity-token scan.
+        foreach (var path in disclosed)
+        {
+            Assert.True(P2T04ProductionScan.Exists(path), $"Disclosed display path '{path}' is missing.");
+            Assert.Contains(
+                "Resumos desta referência",
+                P2T04ProductionScan.Read(path),
+                StringComparison.Ordinal);
         }
 
         Assert.DoesNotContain(P2T05ProductionScan.CreatedTableNames(), table =>

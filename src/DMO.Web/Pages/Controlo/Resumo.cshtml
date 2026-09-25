@@ -19,9 +19,11 @@
     reference lookup + production switcher table sits under it; the compact access cards for the
     related controls come last. Every fact is a REAL backend read (the IProductionResumoRead
     projection and the reference-keyed Job On productions query). Areas with no backend surface
-    (Comparação, Pegamentos, Histórico without the approve grant) render the accepted unavailable
+    (Pegamentos, Histórico without the approve grant) render the accepted unavailable
     state — no fake data, no dead links, no prototype fields (no Guardar Resumo, no Revisão Job
-    On, no MCaliper, no invented Estado).
+    On, no MCaliper, no invented Estado). Comparação is not one of those areas: it is the
+    Peso-during-production workflow served by the existing Peso Create surface (same peso_id),
+    reached through the Peso card/tab — never a separate card, tab or route.
 *@
 <section class="dmo-controlo" data-dmo-controlo-surface="resumo" data-dmo-resumo-surface="true">
 

@@ -35,9 +35,11 @@ namespace DMO.Web.Pages.Controlo;
 /// <para>
 /// The backend projection carries no per-production sheet state (no Estado), no Peso status, no
 /// MCaliper data and no Pegamentos record, so none is rendered: areas without a real backend
-/// surface (Comparação, Pegamentos, and Histórico for a caller without <c>controlo-approve</c>)
-/// present a truthful unavailable state instead of fabricated content. Peso links to the existing
-/// Create surface. The sheet renders the SAME <see cref="ProductionResumoReadModel"/> projection
+/// surface (Pegamentos, and Histórico for a caller without <c>controlo-approve</c>)
+/// present a truthful unavailable state instead of fabricated content. Comparação is NOT a
+/// separate Controlo area: it is the Peso-during-production workflow, served by the existing Peso
+/// Create surface on the SAME <c>peso_id</c> — the Peso card above is its entry. Peso links to the
+/// existing Create surface. The sheet renders the SAME <see cref="ProductionResumoReadModel"/> projection
 /// a later Approve-side read-only view must consume — nothing here recomputes or copies it.</para>
 /// <para>
 /// Server-gated <c>controlo-create</c> exactly like every other P2-T05 route; no new policy, no
@@ -139,12 +141,6 @@ public sealed class ResumoModel : PageModel
     /// <summary>The Peso tab/card target: the existing Peso surface, anchored when a production is selected.</summary>
     public string PesoHref => Resumo is { } resumo
         ? $"/controlo/create?jobonId={resumo.JobOnId}"
-        : ControloTabs.PesoRoute;
-
-    /// <summary>The Comparação tab target: the existing Peso Create surface, anchored on the selected
-    /// production so the operator stays in the Create/Peso workflow and lands in the same context.</summary>
-    public string ComparacaoHref => Resumo is { } resumo
-        ? $"{ControloTabs.PesoRoute}?jobonId={resumo.JobOnId}"
         : ControloTabs.PesoRoute;
 
     /// <summary>
@@ -393,7 +389,6 @@ public sealed class ResumoModel : PageModel
             canApprove: CanViewHistorico,
             resumoHref: ControloTabs.ResumoRoute,
             pesoHref: PesoHref,
-            comparacaoHref: ComparacaoHref,
             historicoHref: HistoricoHref);
     }
 }

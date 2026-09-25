@@ -161,7 +161,6 @@ public sealed class P2T06RenderingTests
             "data-dmo-approve-region=\"filters\"",
             "data-dmo-approve-region=\"pending\"",
             "data-dmo-approve-region=\"review\"",
-            "data-dmo-controlo-region=\"comparison\"",
             "data-dmo-approve-region=\"actions\"",
             "data-dmo-approve-region=\"trail\"");
 
@@ -183,49 +182,6 @@ public sealed class P2T06RenderingTests
         Assert.DoesNotContain("@media", css, StringComparison.Ordinal);
         Assert.DoesNotContain("@container", css, StringComparison.Ordinal);
         Assert.DoesNotContain("@supports", css, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// COMP-APPROVE-1 — the Comparação workspace is rendered inside the existing Approve/Peso
-    /// context when a real <c>peso_id</c> is loaded. It reuses the SAME <c>PesoSheetReadModel</c>
-    /// (read-only measurement context), shows the previous-production side as unavailable and
-    /// never links to a standalone comparison route.
-    /// </summary>
-    [Fact]
-    public async Task COMP_APPROVE1_ComparisonWorkspaceRendersInsidePesoApproveContext()
-    {
-        var composition = new P2T06TestComposition();
-        var pesoId = await SeedSubmittedPesoAsync(composition, "COMP-APPROVE");
-
-        using var factory = P2T06TestHost.ForUser(P2T06TestHost.AllGranted(), composition);
-        using var client = factory.CreateClient();
-
-        using var response = await P2T06TestHost.GetAsync(client, $"{ApprovePath}?pesoId={pesoId}");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var html = await response.Content.ReadAsStringAsync();
-
-        // The comparison region is rendered inside the Peso Approve surface.
-        Assert.Contains("data-dmo-controlo-region=\"comparison\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-dmo-comparacao-head=\"true\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-dmo-comparacao-identities=\"true\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-dmo-comparacao-current=\"true\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-dmo-comparacao-previous=\"true\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-dmo-comparacao-table=\"true\"", html, StringComparison.Ordinal);
-
-        // Real current Peso facts are rendered; the previous side is truthful unavailable.
-        Assert.Contains("ref-COMP-APPROVE", html, StringComparison.Ordinal);
-        Assert.Contains("Ainda não disponível", html, StringComparison.Ordinal);
-
-        // No standalone comparison route remains.
-        Assert.DoesNotContain("/controlo/comparacao", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("dmo-controlo-comparacao.js", html, StringComparison.Ordinal);
-
-        // The comparison region sits between review and actions (inside the Peso Approve page).
-        var reviewIndex = html.IndexOf("data-dmo-approve-region=\"review\"", StringComparison.Ordinal);
-        var comparisonIndex = html.IndexOf("data-dmo-controlo-region=\"comparison\"", StringComparison.Ordinal);
-        var actionsIndex = html.IndexOf("data-dmo-approve-region=\"actions\"", StringComparison.Ordinal);
-        Assert.True(reviewIndex >= 0 && comparisonIndex > reviewIndex && actionsIndex > comparisonIndex);
     }
 
     /// <summary>
