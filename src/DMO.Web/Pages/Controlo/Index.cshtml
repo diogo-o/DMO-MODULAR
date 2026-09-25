@@ -1,0 +1,10 @@
+@page "/controlo"
+@model DMO.Web.Pages.Controlo.ControloIndexModel
+@{
+    Layout = null;
+}
+@* Controlo landing router: GET /controlo never renders a page — it redirects to the Resumo,
+   the Controlo landing page (design: current/modulos/controlo/resumo.md; the Resumo is the
+   first/landing tab of the Controlo area). The query string is preserved so the design's
+   direct link (?ref=<reference>&production=<production>) survives the hop. Authorization is
+   enforced by the target page's controlo-create policy, not duplicated here. *@

@@ -1,0 +1,172 @@
+@page "/controlo/resumo"
+@model DMO.Web.Pages.Controlo.ResumoModel
+@using DMO.Web.Frontend.Shared.Contracts
+@{
+    ViewData["Title"] = "Resumo";
+}
+<partial name="~/Pages/Shared/Components/_SharedComponentAssets.cshtml" />
+<link rel="stylesheet" href="~/css/dmo-controlo.css" asp-append-version="true" />
+<script src="~/js/dmo-controlo-resumo.js" defer></script>
+
+@*
+    Resumo — the Controlo landing page (design: current/modulos/controlo/resumo.md,
+    current/FLUXO_FUNCIONAL.md flow 3, layout adapted from
+    current/dist/21_CONTROLO_01_VISUAL_AUTHORITY_controlo.html).
+
+    Fixed desktop composition, current DMO design conventions: the secondary Controlo tabs come
+    first with Resumo as the landing tab; the read-only production context strip carries the
+    contracted display order Referência → Produção → Máquina → Data → CM → Processo → Lote; the
+    reference lookup + production switcher table sits under it; the compact access cards for the
+    related controls come last. Every fact is a REAL backend read (the IProductionResumoRead
+    projection and the reference-keyed Job On productions query). Areas with no backend surface
+    (Comparação, Pegamentos, Histórico without the approve grant) render the accepted unavailable
+    state — no fake data, no dead links, no prototype fields (no Guardar Resumo, no Revisão Job
+    On, no MCaliper, no invented Estado).
+*@
+<section class="dmo-controlo" data-dmo-controlo-surface="resumo" data-dmo-resumo-surface="true">
+
+    @* ---- Secondary Controlo tabs (Resumo is the first/landing tab) ------------------------- *@
+    <nav class="dmo-secondary-nav" aria-label="Áreas do Controlo" data-dmo-resumo-tabs="true">
+        @foreach (var tab in Model.Tabs)
+        {
+            if (tab.IsCurrent)
+            {
+                <a href="@tab.Href" aria-current="page" data-dmo-resumo-tab="@tab.Key">@tab.Label</a>
+            }
+            else if (tab.IsAvailable)
+            {
+                <a href="@tab.Href" data-dmo-resumo-tab="@tab.Key">@tab.Label</a>
+            }
+            else
+            {
+                <span aria-disabled="true"
+                      title="@tab.DisabledReason"
+                      data-dmo-resumo-tab="@tab.Key"
+                      data-dmo-resumo-tab-unavailable="@tab.DisabledReason">@tab.Label</span>
+            }
+        }
+    </nav>
+
+    @* ---- Production context strip (read-only; Referência → Produção → Máquina → Data → CM →
+           Processo → Lote; no Estado — the backend read carries no sheet state) -------------- *@
+    <div class="dmo-controlo__strip" data-dmo-controlo-strip="true" aria-label="Contexto da produção">
+        @if (Model.Strip is { } strip)
+        {
+            <dl class="dmo-controlo__strip-facts">
+                <div class="dmo-controlo__strip-fact"><dt>Referência</dt><dd data-dmo-strip-reference="true">@strip.Reference</dd></div>
+                <div class="dmo-controlo__strip-fact"><dt>Produção</dt><dd data-dmo-strip-production="true">@strip.ProductionNumber</dd></div>
+                <div class="dmo-controlo__strip-fact"><dt>Máquina</dt><dd data-dmo-strip-machine="true">@strip.Machine</dd></div>
+                <div class="dmo-controlo__strip-fact"><dt>Data</dt><dd data-dmo-strip-date="true">@(strip.ProductionDate?.ToString("yyyy-MM-dd") ?? "—")</dd></div>
+                <div class="dmo-controlo__strip-fact"><dt>CM</dt><dd data-dmo-strip-cm="true">@(strip.CmReference ?? "—")</dd></div>
+                <div class="dmo-controlo__strip-fact"><dt>Processo</dt><dd data-dmo-strip-processo="true">@(strip.Processo ?? "—")</dd></div>
+                <div class="dmo-controlo__strip-fact"><dt>Lote</dt><dd data-dmo-strip-lot="true">@(strip.Lot ?? "—")</dd></div>
+            </dl>
+        }
+        else
+        {
+            <p class="dmo-controlo__strip-empty" data-dmo-strip-empty="true">Selecione uma produção para ver o resumo.</p>
+        }
+    </div>
+
+    @* ---- Reference lookup + production switcher (explicit human selection, newest first) --- *@
+    <div class="dmo-controlo__region" data-dmo-controlo-region="selection" aria-label="Seleção de produção">
+        <form class="dmo-controlo__lookup" method="get" action="/controlo/resumo" data-dmo-resumo-lookup="true">
+            <label class="dmo-controlo__label" for="dmo-resumo-reference">Referência</label>
+            <input class="dmo-controlo__input"
+                   id="dmo-resumo-reference"
+                   name="ref"
+                   type="text"
+                   value="@Model.LookupReference"
+                   data-dmo-resumo-reference="true" />
+            <button class="dmo-controlo__button" type="submit" data-dmo-resumo-lookup-submit="true">Pesquisar</button>
+        </form>
+
+        @if (Model.ValidationErrors.Count > 0)
+        {
+            <ul class="dmo-controlo__errors" role="alert" data-dmo-resumo-errors="true">
+                @foreach (var error in Model.ValidationErrors)
+                {
+                    <li data-dmo-resumo-error="@error">@error</li>
+                }
+            </ul>
+        }
+        else if (Model.LookupFailed)
+        {
+            <partial name="~/Pages/Shared/Components/_CommonStateRegion.cshtml"
+                     model="@CommonStateRegionPresentation.LookupFailed(
+                         "Não foi possível obter as produções desta referência.",
+                         "Seleção de produção")" />
+        }
+        else if (Model.Productions is not null)
+        {
+            <div class="dmo-controlo__route-map" data-dmo-resumo-route-map="true" hidden>
+                @foreach (var route in Model.ProductionRoutes)
+                {
+                    <span data-dmo-resumo-route="@route.Key" data-dmo-resumo-href="@route.Href"></span>
+                }
+            </div>
+            <partial name="~/Pages/Shared/Components/_DenseDataTable.cshtml" model="Model.Productions" />
+        }
+    </div>
+
+    @* ---- Resumo sheet of the selected production ------------------------------------------- *@
+    @if (Model.Resumo is { } resumo)
+    {
+        @* Compact access cards for the related controls: only real routes are linked; areas
+           without a backend surface render the accepted unavailable state, never fake data. *@
+        <div class="dmo-controlo__region" data-dmo-resumo-region="controls" aria-label="Controlos relacionados">
+            <div class="dmo-controlo__facts" data-dmo-resumo-cards="true">
+                <div data-dmo-resumo-card="peso">
+                    <strong>Peso</strong>
+                    <a class="dmo-controlo__button" href="@Model.PesoHref" data-dmo-resumo-open-peso="true">Abrir Peso</a>
+                </div>
+                <div data-dmo-resumo-card="pegamentos">
+                    <strong>Pegamentos</strong>
+                    <span class="dmo-controlo__strip-empty" data-dmo-resumo-pegamentos-unavailable="true">Ainda não disponível — os Pegamentos não estão implementados neste build.</span>
+                </div>
+            </div>
+        </div>
+
+        @* ---- CM context: frozen triple + live Tool facts as SEPARATE facts (P2-T04 context
+               semantics; the frozen triple is never refreshed). No Job On fact is re-entered. *@
+        <div class="dmo-controlo__region" data-dmo-resumo-region="cm-context" aria-label="Contexto CM">
+            @if (Model.HasNoCmContext)
+            {
+                <div class="dmo-controlo__missing-context" data-dmo-missing-context="true">
+                    <strong>Esta produção não tem ferramenta CM associada.</strong>
+                    <span>Corrija as ferramentas no Job On (selecione/crie a ferramenta CM) e volte a abrir o resumo.</span>
+                </div>
+            }
+            else if (resumo.Cm is { } cm)
+            {
+                <div class="dmo-controlo__cm-determined" data-dmo-cm-determined="true">
+                    <dl class="dmo-controlo__frozen-triple" data-dmo-frozen-triple="true">
+                        <div class="dmo-controlo__strip-fact"><dt>Ferramenta CM (fixada)</dt><dd>@cm.FrozenToolReference — lote @cm.FrozenToolLot</dd></div>
+                    </dl>
+                    @if (Model.CmTool is not null)
+                    {
+                        <partial name="~/Pages/Shared/Components/_ToolSummaryRow.cshtml" model="Model.CmTool" />
+                    }
+                </div>
+            }
+        </div>
+    }
+    else if (Model.ResumoNotFound)
+    {
+        <div data-dmo-resumo-not-found="true">
+            <partial name="~/Pages/Shared/Components/_CommonStateRegion.cshtml"
+                     model="@CommonStateRegionPresentation.Empty(
+                         "Não foi encontrado nenhum Resumo para esta produção.",
+                         "Resumo da produção")" />
+        </div>
+    }
+    else if (Model.ProductionNotFound)
+    {
+        <div data-dmo-resumo-production-not-found="true">
+            <partial name="~/Pages/Shared/Components/_CommonStateRegion.cshtml"
+                     model="@CommonStateRegionPresentation.Empty(
+                         "Esta referência não tem a produção indicada. Selecione uma das produções listadas.",
+                         "Resumo da produção")" />
+        </div>
+    }
+</section>
