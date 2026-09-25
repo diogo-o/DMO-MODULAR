@@ -411,6 +411,39 @@ public sealed class ApproveHistoricoModel : PageModel
     /// <summary>The secondary Controlo tab strip, with Histórico as the current tab.</summary>
     public IReadOnlyList<ControloTabPresentation> Tabs { get; private set; } = [];
 
+    /// <summary>
+    /// The Comparação tab target: the existing Peso Approve surface, carrying the active filters
+    /// (referência / produção / máquina) through the Approve page's own GET filter contract so
+    /// the responsável stays in the Approve/Peso workflow and lands on the matching review rows.
+    /// No new state mechanism.
+    /// </summary>
+    public string ComparacaoHref
+    {
+        get
+        {
+            var reference = Normalize(Reference);
+            if (reference is null)
+            {
+                return ControloTabs.AprovarRoute;
+            }
+
+            var href = $"{ControloTabs.AprovarRoute}?reference={Uri.EscapeDataString(reference)}";
+            var production = Normalize(ProductionNumber);
+            if (production is not null)
+            {
+                href += $"&productionNumber={Uri.EscapeDataString(production)}";
+            }
+
+            var machine = Normalize(Machine);
+            if (machine is not null)
+            {
+                href += $"&machine={Uri.EscapeDataString(machine)}";
+            }
+
+            return href;
+        }
+    }
+
     private void BuildTabs(bool canCreate)
     {
         Tabs = ControloTabs.Build(
@@ -419,6 +452,7 @@ public sealed class ApproveHistoricoModel : PageModel
             canApprove: true,
             resumoHref: ResumoHref,
             pesoHref: ControloTabs.PesoRoute,
+            comparacaoHref: ComparacaoHref,
             historicoHref: ControloTabs.HistoricoRoute);
     }
 

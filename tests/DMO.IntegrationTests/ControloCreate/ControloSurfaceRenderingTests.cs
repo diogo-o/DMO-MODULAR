@@ -337,6 +337,75 @@ public sealed class ControloSurfaceRenderingTests
         Assert.Contains("data-dmo-submitted=\"true\"", html, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// COMP-CREATE-1 — the Comparação workspace is rendered inside the existing Create/Peso
+    /// context when a real <c>peso_id</c> is loaded. It reuses the SAME Peso sheet (current
+    /// identity + real measurements/calculations), shows the previous-production side as
+    /// unavailable and never links to a standalone comparison route.
+    /// </summary>
+    [Fact]
+    public async Task COMP_CREATE1_ComparisonWorkspaceRendersInsidePesoCreateContext()
+    {
+        var composition = new P2T05TestComposition();
+        var tool = composition.SeedTool(ToolType.Cm, "5447T173", "LOTE-COMP", Processo.Nnpb);
+        var jobOn = composition.SeedJobOnWithCmContext(
+            "COMP-CREATE", "1000", "B1", tool.ToolId.Value, ToolType.Cm, tool.Reference, tool.Lot);
+        var cmId = jobOn.Contexts.Single(context => context.ContextType == ToolContextType.Cm).ContextId;
+
+        using var factory = P2T05TestHost.ForUser(P2T05TestHost.AllGranted(), composition);
+        using var client = factory.CreateClient();
+
+        Guid pesoId;
+        using (var createResponse = await P2T05TestHost.SendJsonAsync(
+                   client,
+                   HttpMethod.Post,
+                   "/controlo/create/pesos",
+                   P2T05TestHost.Json(new
+                   {
+                       cmId,
+                       pendingToolId = (Guid?)null,
+                       waterTemperature = 20m,
+                       volumeMarisaBq = (decimal?)null,
+                       volumePuncaoPu = (decimal?)null,
+                       previousProductionEndReference = (string?)null,
+                       previousAverageWeightReference = (string?)null,
+                       rows = new[] { new { waterWeightG = 500m } },
+                   })))
+        {
+            Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+            using var created = JsonDocument.Parse(await createResponse.Content.ReadAsStringAsync());
+            pesoId = created.RootElement.GetProperty("pesoId").GetGuid();
+        }
+
+        using var pageResponse = await P2T05TestHost.GetAsync(client, $"/controlo/create?pesoId={pesoId}");
+        Assert.Equal(HttpStatusCode.OK, pageResponse.StatusCode);
+
+        var html = await pageResponse.Content.ReadAsStringAsync();
+
+        // The comparison region is rendered inside the Peso Create surface.
+        Assert.Contains("data-dmo-controlo-region=\"comparison\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-dmo-comparacao-head=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-dmo-comparacao-identities=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-dmo-comparacao-current=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-dmo-comparacao-previous=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-dmo-comparacao-table=\"true\"", html, StringComparison.Ordinal);
+
+        // Real current Peso facts are rendered; the previous side is truthful unavailable.
+        Assert.Contains("CM 5447T173", html, StringComparison.Ordinal);
+        Assert.Contains("500", html, StringComparison.Ordinal);
+        Assert.Contains("Ainda não disponível", html, StringComparison.Ordinal);
+
+        // No standalone comparison route remains.
+        Assert.DoesNotContain("/controlo/comparacao", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("dmo-controlo-comparacao.js", html, StringComparison.Ordinal);
+
+        // The comparison region sits between results and actions (inside the Peso page).
+        var resultsIndex = html.IndexOf("data-dmo-controlo-region=\"results\"", StringComparison.Ordinal);
+        var comparisonIndex = html.IndexOf("data-dmo-controlo-region=\"comparison\"", StringComparison.Ordinal);
+        var actionsIndex = html.IndexOf("data-dmo-controlo-region=\"actions\"", StringComparison.Ordinal);
+        Assert.True(resultsIndex >= 0 && comparisonIndex > resultsIndex && actionsIndex > comparisonIndex);
+    }
+
     // ---- arrangement helpers -------------------------------------------------------------
 
     /// <summary>Asserts that the supplied fragments appear in the text in the supplied order.</summary>

@@ -1,0 +1,84 @@
+@model DMO.Web.Pages.Controlo.ComparacaoWorkspaceModel?
+@using DMO.Web.Pages.Controlo
+
+@* 
+    Comparação workspace — a shared presentation slice rendered inside the Peso Create and Peso
+    Approve contexts. It consumes the SAME <c>peso_id</c> / <c>PesoSheetReadModel</c> the host page
+    already loaded; no comparison_id, no duplicated measurements and no duplicated calculations are
+    introduced. The previous-production side is rendered as a truthful unavailable state because
+    the real backend does not yet support it.
+*@
+@if (Model is { } comparacao)
+{
+    <div class="dmo-controlo__region" data-dmo-controlo-region="comparison" aria-label="Comparação">
+
+        @* ---- Compare head ------------------------------------------------------------------ *@
+        <div class="dmo-controlo__compare-head" data-dmo-comparacao-head="true">
+            <div>
+                <h2>Comparação desta produção</h2>
+                <p>CM em produção comparado com a base aprovada.</p>
+            </div>
+        </div>
+
+        @* ---- Identity pairing: current production + honest previous-production unavailable state *@
+        <div class="dmo-controlo__identities" data-dmo-comparacao-identities="true">
+            <div class="dmo-controlo__identity" data-dmo-comparacao-current="true">
+                <span>Produção atual</span>
+                <strong>@(comparacao.ProductionNumber ?? "—") · Máquina @(comparacao.Machine ?? "—")</strong>
+                <small>
+                    @(comparacao.CmReference is null
+                        ? "Sem contexto CM associado."
+                        : $"CM {comparacao.CmReference} — lote {comparacao.Lot ?? "—"} — {comparacao.Processo ?? "—"}")
+                </small>
+            </div>
+            <div class="dmo-controlo__identity dmo-controlo__identity--previous" data-dmo-comparacao-previous="true">
+                <span>Produção anterior aprovada</span>
+                <strong>Ainda não disponível</strong>
+                <small>A comparação com uma produção anterior aprovada será ligada ao backend numa fase seguinte; nenhuma base é pré-selecionada.</small>
+            </div>
+        </div>
+
+        @* ---- Comparison table: current Peso measurements/volumes; previous side unavailable ---- *@
+        @if (comparacao.Rows.Count > 0)
+        {
+            <div class="dmo-controlo__results-scroll" role="region" tabindex="0" aria-label="Comparação por leitura">
+                <table class="dmo-controlo__results-table" data-dmo-comparacao-table="true">
+                    <thead>
+                        <tr>
+                            <th>Leitura</th>
+                            <th>Peso em água atual (g)</th>
+                            <th>Capacidade atual (cm³)</th>
+                            <th>Peso do vidro atual (g)</th>
+                            <th>Produção anterior</th>
+                            <th>Diferença</th>
+                            <th>Variação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in comparacao.Rows)
+                        {
+                            <tr data-dmo-comparacao-row="@row.RowPosition">
+                                <td>@row.RowPosition</td>
+                                <td data-dmo-comparacao-water="@row.RowPosition">@row.WaterWeightG.ToString("0.##")</td>
+                                <td data-dmo-comparacao-capacity="@row.RowPosition">@row.CapacityCm3.ToString("0.##")</td>
+                                <td data-dmo-comparacao-glass="@row.RowPosition">@row.GlassWeightG.ToString("0.##")</td>
+                                <td title="A comparação com a produção anterior ainda não está disponível.">—</td>
+                                <td title="A comparação com a produção anterior ainda não está disponível.">—</td>
+                                <td title="A comparação com a produção anterior ainda não está disponível.">—</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="dmo-controlo__hint" data-dmo-comparacao-empty="true">Não existem leituras de Peso para comparar.</p>
+        }
+
+        <p class="dmo-controlo__hint" data-dmo-comparacao-hint="true">
+            A comparação utiliza os dados reais deste Peso. A comparação com uma produção anterior
+            aprovada será ligada ao backend numa fase seguinte.
+        </p>
+    </div>
+}

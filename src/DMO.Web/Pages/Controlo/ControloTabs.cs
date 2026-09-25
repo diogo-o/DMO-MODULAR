@@ -6,22 +6,29 @@ namespace DMO.Web.Pages.Controlo;
 /// page (<c>/controlo/resumo</c>) and the Histórico de Pesos page
 /// (<c>/controlo/approve/historico</c>). The tab set, order, labels, capability gates and
 /// unavailable reasons are defined ONCE here; each surface passes only its own current key, its
-/// caller's capability outcome and its hrefs, so the two pages can never drift apart.
+/// caller's capability outcome and its hrefs, so the pages can never drift apart.
 /// </summary>
 /// <remarks>
 /// No route and no permission is invented here: every href is an existing route and the gates
 /// mirror the pages' own authorization policies — the create-side surfaces (Resumo, Peso,
 /// Definições) require <c>controlo-create</c> and the Histórico surface requires
-/// <c>controlo-approve</c>, exactly like the authorization policies on the target pages. A
-/// caller lacking a gate sees a truthful unavailable tab with the reason, never a dead link;
-/// Comparação and Pegamentos have no backend surface in this build and always render the accepted
-/// unavailable state. Context (the selected production identity) travels in the hrefs the caller
-/// supplies, over each target route's existing query contract — no new state mechanism.
+/// <c>controlo-approve</c>. A caller lacking a gate sees a truthful unavailable tab with the
+/// reason, never a dead link. Comparação is not a standalone domain or route: it is the
+/// Peso-during-production workflow and is surfaced inside the existing Peso Create
+/// (<c>/controlo/create</c>) and Peso Approve (<c>/controlo/approve</c>) contexts, sharing the
+/// SAME <c>peso_id</c>. The Comparação tab therefore resolves to whichever Peso context the
+/// current surface belongs to. Only Pegamentos has no backend surface and always renders the
+/// accepted unavailable state. Context (the selected production/Peso identity) travels in the
+/// hrefs the caller supplies, over each target route's existing query contract — no new state
+/// mechanism.
 /// </remarks>
 public static class ControloTabs
 {
     /// <summary>Tab key of the Resumo landing surface.</summary>
     public static readonly string ResumoKey = ControloTabPresentation.ToKey("Resumo");
+
+    /// <summary>Tab key of the Comparação surface.</summary>
+    public static readonly string ComparacaoKey = ControloTabPresentation.ToKey("Comparação");
 
     /// <summary>Tab key of the Histórico de Pesos surface.</summary>
     public static readonly string HistoricoKey = ControloTabPresentation.ToKey("Histórico");
@@ -31,6 +38,9 @@ public static class ControloTabs
 
     /// <summary>The Peso (Controlo Create) route.</summary>
     public const string PesoRoute = "/controlo/create";
+
+    /// <summary>The Peso (Controlo Approve) route.</summary>
+    public const string AprovarRoute = "/controlo/approve";
 
     /// <summary>The Histórico de Pesos route.</summary>
     public const string HistoricoRoute = "/controlo/approve/historico";
@@ -44,8 +54,11 @@ public static class ControloTabs
     /// rendered; <paramref name="canCreate"/>/<paramref name="canApprove"/> are the caller's
     /// <c>controlo-create</c>/<c>controlo-approve</c> outcomes and gate the tabs whose targets
     /// carry the matching authorization policy, so a caller without the grant sees a truthful
-    /// unavailable tab with the reason instead of a dead link. Comparação and Pegamentos have no
-    /// backend surface in this build and always render the accepted unavailable state.
+    /// unavailable tab with the reason instead of a dead link. Comparação is gated by either grant
+    /// because it lives inside the Peso Create context for create-side callers and inside the Peso
+    /// Approve context for approve-side callers, but the caller supplies the correct role-context
+    /// href. Only Pegamentos has no surface in this build and always renders the accepted
+    /// unavailable state.
     /// </summary>
     public static IReadOnlyList<ControloTabPresentation> Build(
         string currentKey,
@@ -53,14 +66,15 @@ public static class ControloTabs
         bool canApprove,
         string resumoHref,
         string pesoHref,
+        string comparacaoHref,
         string historicoHref) =>
     [
         Gated("Resumo", currentKey, canCreate, resumoHref,
             "O Resumo requer a concessão Controlo Create."),
         Gated("Peso", currentKey, canCreate, pesoHref,
             "O Peso requer a concessão Controlo Create."),
-        ControloTabPresentation.UnavailableTab(
-            "Comparação", "A Comparação ainda não está disponível neste build."),
+        Gated("Comparação", currentKey, canCreate || canApprove, comparacaoHref,
+            "A Comparação requer a concessão Controlo Create ou Controlo Approve."),
         ControloTabPresentation.UnavailableTab(
             "Pegamentos", "Os Pegamentos ainda não estão disponíveis neste build."),
         Gated("Histórico", currentKey, canApprove, historicoHref,

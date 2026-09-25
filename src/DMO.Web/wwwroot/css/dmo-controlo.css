@@ -339,3 +339,119 @@
   cursor: not-allowed;
   opacity: 0.75;
 }
+
+/* Comparação surface (frontend visual slice): compare head, base chooser, identity pairing,
+   formula banner and action slots, following the peso-operador visual authority in this file's
+   tokens. Fixed desktop composition — no breakpoint rules (LAY1). */
+.dmo-controlo__compare-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dmo-controlo__compare-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.dmo-controlo__compare-head p {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--dmo-muted, #5a5a5a);
+}
+
+.dmo-controlo__chooser {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--dmo-border, #c9c9c9);
+  background: var(--dmo-surface-strong, #f2f2f2);
+}
+
+.dmo-controlo__chooser-field {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 16rem;
+}
+
+.dmo-controlo__chooser .dmo-controlo__input--select {
+  width: 100%;
+}
+
+.dmo-controlo__identities {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+  margin-top: 0.625rem;
+}
+
+.dmo-controlo__identity {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--dmo-border, #c9c9c9);
+  border-left: 4px solid var(--dmo-accent, #1e638f);
+  background: #ffffff;
+}
+
+.dmo-controlo__identity--previous {
+  border-left-color: var(--dmo-warning, #9a6424);
+}
+
+.dmo-controlo__identity span {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dmo-muted, #5a5a5a);
+}
+
+.dmo-controlo__identity strong {
+  display: block;
+  margin-top: 0.1875rem;
+}
+
+.dmo-controlo__identity small {
+  display: block;
+  margin-top: 0.1875rem;
+  color: var(--dmo-muted, #5a5a5a);
+}
+
+.dmo-controlo__formula {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid var(--dmo-accent, #1e638f);
+  background: var(--dmo-surface-strong, #f2f2f2);
+}
+
+.dmo-controlo__formula .dmo-controlo__hint {
+  display: block;
+}
+
+.dmo-controlo__formula code {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--dmo-accent-dark, #164a6c);
+  white-space: nowrap;
+}
+
+.dmo-controlo__compare-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+}
+
+.dmo-controlo__action-reason {
+  font-size: 0.75rem;
+  color: var(--dmo-muted, #5a5a5a);
+}

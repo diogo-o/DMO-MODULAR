@@ -47,10 +47,12 @@ public sealed class ControloHistoricoNavigationTests
         Assert.Contains("href=\"/controlo/create/definicoes\"", decodedHtml, StringComparison.Ordinal);
         Assert.Contains("data-dmo-controlo-tab=\"definicoes\"", decodedHtml, StringComparison.Ordinal);
 
+        // Comparação resolves to the Peso Approve surface, carrying the active production filters.
         Assert.Contains("data-dmo-controlo-tab=\"comparacao\"", decodedHtml, StringComparison.Ordinal);
+        Assert.Contains("href=\"/controlo/approve?reference=REF-NAV&productionNumber=PROD-999&machine=M1\"", decodedHtml, StringComparison.Ordinal);
         Assert.Contains("data-dmo-controlo-tab=\"pegamentos\"", decodedHtml, StringComparison.Ordinal);
-        Assert.Contains("A Comparação ainda não está disponível neste build.", decodedHtml, StringComparison.Ordinal);
         Assert.Contains("Os Pegamentos ainda não estão disponíveis neste build.", decodedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("/controlo/comparacao", decodedHtml, StringComparison.Ordinal);
 
         var resumo = decodedHtml.IndexOf("data-dmo-controlo-tab=\"resumo\"", StringComparison.Ordinal);
         var peso = decodedHtml.IndexOf("data-dmo-controlo-tab=\"peso\"", StringComparison.Ordinal);
@@ -64,8 +66,9 @@ public sealed class ControloHistoricoNavigationTests
 
     /// <summary>
     /// HISTNAV-2 — with only the Controlo Approve grant the create-side tabs (Resumo, Peso and
-    /// Definições) are truthfully unavailable, Histórico remains the current tab, and Comparação
-    /// and Pegamentos stay in their stated unavailable state.
+    /// Definições) are truthfully unavailable, Histórico remains the current tab, Comparação is
+    /// available because it resolves to the Approve/Peso workflow, and Pegamentos stays in its
+    /// stated unavailable state.
     /// </summary>
     [Fact]
     public async Task HISTNAV2_HistoricoGatesCreateSideTabsForApproveOnly()
@@ -93,8 +96,28 @@ public sealed class ControloHistoricoNavigationTests
         Assert.Contains("data-dmo-controlo-tab-unavailable=\"As Definições requerem a concessão Controlo Create.\"", decodedHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("href=\"/controlo/create/definicoes\"", decodedHtml, StringComparison.Ordinal);
 
+        // Comparação is available to the approve-only caller through the Peso Approve surface.
         Assert.Contains("data-dmo-controlo-tab=\"comparacao\"", decodedHtml, StringComparison.Ordinal);
+        Assert.Contains("href=\"/controlo/approve\"", decodedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-dmo-controlo-tab-unavailable=\"A Comparação", decodedHtml, StringComparison.Ordinal);
+
         Assert.Contains("data-dmo-controlo-tab=\"pegamentos\"", decodedHtml, StringComparison.Ordinal);
+        Assert.Contains("Os Pegamentos ainda não estão disponíveis neste build.", decodedHtml, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// HISTNAV-3 — the standalone <c>/controlo/comparacao</c> route from the interrupted K3 attempt
+    /// no longer exists. Comparação is only available inside the existing Peso Create/Approve
+    /// surfaces.
+    /// </summary>
+    [Fact]
+    public async Task HISTNAV3_NoStandaloneComparisonRouteRemains()
+    {
+        using var factory = P2T06TestHost.ForUser(P2T06TestHost.AllGranted());
+        using var client = factory.CreateClient();
+
+        using var response = await P2T06TestHost.GetAsync(client, "/controlo/comparacao");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }
 

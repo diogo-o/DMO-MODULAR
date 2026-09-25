@@ -141,6 +141,12 @@ public sealed class ResumoModel : PageModel
         ? $"/controlo/create?jobonId={resumo.JobOnId}"
         : ControloTabs.PesoRoute;
 
+    /// <summary>The Comparação tab target: the existing Peso Create surface, anchored on the selected
+    /// production so the operator stays in the Create/Peso workflow and lands in the same context.</summary>
+    public string ComparacaoHref => Resumo is { } resumo
+        ? $"{ControloTabs.PesoRoute}?jobonId={resumo.JobOnId}"
+        : ControloTabs.PesoRoute;
+
     /// <summary>
     /// The Histórico tab target: the existing Histórico de Pesos surface, carrying the selected
     /// production identity (referência / produção / máquina) through the Histórico page's own GET
@@ -387,6 +393,7 @@ public sealed class ResumoModel : PageModel
             canApprove: CanViewHistorico,
             resumoHref: ControloTabs.ResumoRoute,
             pesoHref: PesoHref,
+            comparacaoHref: ComparacaoHref,
             historicoHref: HistoricoHref);
     }
 }

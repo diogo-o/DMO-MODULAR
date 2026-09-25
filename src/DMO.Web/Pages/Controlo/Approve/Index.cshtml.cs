@@ -4,6 +4,7 @@ using DMO.Application.Session;
 using DMO.Domain.Controlo;
 using DMO.Web.Frontend.Shared.Contracts;
 using DMO.Web.Frontend.Shell;
+using DMO.Web.Pages.Controlo;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -110,6 +111,9 @@ public sealed class ApproveIndexModel : PageModel
 
     /// <summary>R3 â€” the exact-record review sheet (shared read model + trail + availability).</summary>
     public ReviewSheetView? Sheet { get; private set; }
+
+    /// <summary>The shared Comparação workspace view of the opened review sheet (same <c>peso_id</c>, no duplicated data).</summary>
+    public ComparacaoWorkspaceModel? Comparacao => ComparacaoWorkspaceModel.FromPeso(Sheet?.Peso);
 
     /// <summary>R4 â€” the decision region (DecisionBar).</summary>
     public DecisionBarPresentation? Actions { get; private set; }
