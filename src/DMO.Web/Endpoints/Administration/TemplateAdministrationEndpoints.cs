@@ -1,7 +1,7 @@
 using DMO.Application.TemplateAdministration;
 using DMO.Web.Authorization;
 
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.Administration;
 
 /// <summary>
 /// Minimal API surface of the ADMIN-only Template administration (P1-T06).

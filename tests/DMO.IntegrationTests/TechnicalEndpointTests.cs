@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using DMO.IntegrationTests.Host;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Core;
 
 namespace DMO.IntegrationTests;
 

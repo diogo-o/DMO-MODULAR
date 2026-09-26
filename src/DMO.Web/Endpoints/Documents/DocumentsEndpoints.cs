@@ -1,6 +1,7 @@
 using DMO.Application.Documents;
+using DMO.Web.Endpoints.Controlo;
 
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.Documents;
 
 /// <summary>
 /// The P2-T08 documents surface of this slice: the Peso PDF generation/storage route AND the

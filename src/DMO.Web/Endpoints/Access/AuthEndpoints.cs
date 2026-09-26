@@ -3,7 +3,7 @@ using DMO.Application.Authentication;
 using DMO.Application.Session;
 using DMO.Web.Auth;
 
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.Access;
 
 /// <summary>
 /// Authentication and current-account surface.

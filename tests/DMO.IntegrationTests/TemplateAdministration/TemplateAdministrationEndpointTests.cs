@@ -94,7 +94,7 @@ public sealed class TemplateAdministrationEndpointTests : IClassFixture<DmoWebAp
             AllowAutoRedirect = false,
         });
 
-        var response = await client.GetAsync(DMO.Web.Endpoints.TemplateAdministrationEndpoints.TemplatesBasePath);
+        var response = await client.GetAsync(DMO.Web.Endpoints.Administration.TemplateAdministrationEndpoints.TemplatesBasePath);
 
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains(

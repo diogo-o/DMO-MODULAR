@@ -665,7 +665,7 @@ public sealed class P2T04RegressionTests
             "src/DMO.Application/JobOn/IJobOnControlOutputsService.cs",
             "src/DMO.Application/JobOn/JobOnControlOutputsService.cs",
             "src/DMO.Application/JobOn/JobOnControlOutputsModels.cs",
-            "src/DMO.Web/Endpoints/JobOnEndpoints.cs",
+            "src/DMO.Web/Endpoints/ToolJobOn/JobOnEndpoints.cs",
             "src/DMO.Web/Pages/JobOn/View.cshtml",
             "src/DMO.Web/Pages/JobOn/View.cshtml.cs",
         };
@@ -862,7 +862,7 @@ public sealed class P2T04RegressionTests
                      "src/DMO.Infrastructure/Persistence/PersistenceServiceCollectionExtensions.cs",
                      "src/DMO.Infrastructure/Migrations/DmoDbContextModelSnapshot.cs",
                      "src/DMO.Infrastructure/Migrations/20260922232349_ToolJobOnDomainCore.cs",
-                     "src/DMO.Web/Endpoints/JobOnEndpoints.cs",
+                     "src/DMO.Web/Endpoints/ToolJobOn/JobOnEndpoints.cs",
                  })
         {
             Assert.True(P2T04ProductionScan.Exists(expected), $"Expected P2-T04 path '{expected}' is missing.");

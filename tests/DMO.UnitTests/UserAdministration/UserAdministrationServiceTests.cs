@@ -5,7 +5,7 @@ using DMO.Application.Templates;
 using DMO.Application.UserAdministration;
 using DMO.UnitTests.Access.Fakes;
 using DMO.UnitTests.UserAdministration.Fakes;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Administration;
 
 namespace DMO.UnitTests.UserAdministration;
 

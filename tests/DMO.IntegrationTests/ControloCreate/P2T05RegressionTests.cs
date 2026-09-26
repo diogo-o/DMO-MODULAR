@@ -6,7 +6,7 @@ using DMO.Domain.Controlo;
 using DMO.Infrastructure.Persistence.Entities;
 using DMO.IntegrationTests.JobOn;
 using DMO.Web.Authorization;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Controlo;
 using DMO.Web.Pages.Controlo;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -401,7 +401,7 @@ public sealed class P2T05RegressionTests
                      "src/DMO.Infrastructure/Persistence/PersistenceServiceCollectionExtensions.cs",
                      "src/DMO.Infrastructure/Migrations/DmoDbContextModelSnapshot.cs",
                      "src/DMO.Application/JobOn/IJobOnService.cs",
-                     "src/DMO.Web/Endpoints/ControloCreateEndpoints.cs",
+                     "src/DMO.Web/Endpoints/Controlo/ControloCreateEndpoints.cs",
                      "src/DMO.Web/Pages/Controlo/Create.cshtml",
                  })
         {
@@ -522,13 +522,13 @@ public sealed class P2T05RegressionTests
 
         Assert.Contains(
             "ModuleAuthorizationPolicies.PolicyName(ModuleCatalog.ControloCreate)",
-            P2T04ProductionScan.Read("src/DMO.Web/Endpoints/ControloDefinicoesEndpoints.cs"),
+            P2T04ProductionScan.Read("src/DMO.Web/Endpoints/Controlo/ControloDefinicoesEndpoints.cs"),
             StringComparison.Ordinal);
 
         foreach (var path in new[]
                  {
-                     "src/DMO.Web/Endpoints/ControloCreateEndpoints.cs",
-                     "src/DMO.Web/Endpoints/ControloDefinicoesEndpoints.cs",
+                     "src/DMO.Web/Endpoints/Controlo/ControloCreateEndpoints.cs",
+                     "src/DMO.Web/Endpoints/Controlo/ControloDefinicoesEndpoints.cs",
                  })
         {
             var source = P2T04ProductionScan.Read(path);

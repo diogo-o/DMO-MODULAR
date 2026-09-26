@@ -24,8 +24,8 @@ public sealed class JobOnSourceModelTests
         // The application boundary reference points: the Web layer holds no persistence query.
         var webQueryReferences = new[]
         {
-            "src/DMO.Web/Endpoints/JobOnEndpoints.cs",
-            "src/DMO.Web/Endpoints/FerramentasEndpoints.cs",
+            "src/DMO.Web/Endpoints/ToolJobOn/JobOnEndpoints.cs",
+            "src/DMO.Web/Endpoints/ToolJobOn/FerramentasEndpoints.cs",
             "src/DMO.Web/Pages/JobOn/Index.cshtml.cs",
             "src/DMO.Web/Pages/JobOn/View.cshtml.cs",
             "src/DMO.Web/Pages/JobOn/Create.cshtml.cs",

@@ -7,7 +7,7 @@ using DMO.Domain.Controlo;
 using DMO.Infrastructure.Persistence;
 using DMO.Infrastructure.Persistence.Controlo;
 using DMO.IntegrationTests.ControloCreate;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Controlo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;

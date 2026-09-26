@@ -8,7 +8,7 @@ using DMO.Domain.JobOn;
 using DMO.Domain.Tools;
 using DMO.Infrastructure.Persistence;
 using DMO.Infrastructure.Persistence.Entities;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.ToolJobOn;
 using DMO.Web.Frontend.Shared.Contracts;
 using DMO.Web.Pages.JobOn;
 using Microsoft.EntityFrameworkCore;
@@ -662,7 +662,7 @@ public sealed class JobOnContractTests
         // The explicit source travels in the route, bound by the server, never in the body.
         Assert.Contains(
             "MapPost(\"/{jobonId:guid}/duplicate\"",
-            ReadSource("src/DMO.Web/Endpoints/JobOnEndpoints.cs"),
+            ReadSource("src/DMO.Web/Endpoints/ToolJobOn/JobOnEndpoints.cs"),
             StringComparison.Ordinal);
     }
 
@@ -845,7 +845,7 @@ public sealed class JobOnContractTests
 
         // The contextual Ferramentas surface has exactly the search/list route and the create API the
         // origin surface posts to: no create page route exists.
-        var ferramentas = ReadSource("src/DMO.Web/Endpoints/FerramentasEndpoints.cs");
+        var ferramentas = ReadSource("src/DMO.Web/Endpoints/ToolJobOn/FerramentasEndpoints.cs");
         Assert.Contains("FerramentasBasePath = \"/ferramentas\"", ferramentas, StringComparison.Ordinal);
 
         var ferramentasTemplates = RouteTemplates(ferramentas);
@@ -1068,7 +1068,7 @@ public sealed class JobOnContractTests
         // The delete is one occurrence per call, addressed by that single route parameter.
         Assert.Contains(
             "manage.MapDelete(\"/{jobonId:guid}\"",
-            ReadSource("src/DMO.Web/Endpoints/JobOnEndpoints.cs"),
+            ReadSource("src/DMO.Web/Endpoints/ToolJobOn/JobOnEndpoints.cs"),
             StringComparison.Ordinal);
     }
 
@@ -1117,7 +1117,7 @@ public sealed class JobOnContractTests
     /// <summary>The declared route table of the Job On surface: endpoint templates and page routes.</summary>
     private static IReadOnlyList<string> JobOnRouteTemplates()
     {
-        var endpoint = ReadSource("src/DMO.Web/Endpoints/JobOnEndpoints.cs");
+        var endpoint = ReadSource("src/DMO.Web/Endpoints/ToolJobOn/JobOnEndpoints.cs");
         var templates = RouteTemplates(endpoint).ToList();
 
         var basePath = Regex.Match(endpoint, "JobOnBasePath\\s*=\\s*\"(?<path>[^\"]+)\"");
@@ -1294,8 +1294,8 @@ public sealed class JobOnContractTests
             .Select(RelativeToRoot)
             .Concat(
             [
-                "src/DMO.Web/Endpoints/JobOnEndpoints.cs",
-                "src/DMO.Web/Endpoints/FerramentasEndpoints.cs",
+                "src/DMO.Web/Endpoints/ToolJobOn/JobOnEndpoints.cs",
+                "src/DMO.Web/Endpoints/ToolJobOn/FerramentasEndpoints.cs",
                 "src/DMO.Web/Pages/Ferramentas/Tool.cshtml",
                 "src/DMO.Web/Pages/Ferramentas/Tool.cshtml.cs",
                 "src/DMO.Web/Pages/Shared/Components/_ToolSummaryRow.cshtml",

@@ -105,8 +105,8 @@ internal static class P2T05ProductionScan
         P2T04ProductionScan.FilesUnder("src/DMO.Web/Pages/Controlo", ".cs", ".cshtml")
             .Concat(
             [
-                "src/DMO.Web/Endpoints/ControloCreateEndpoints.cs",
-                "src/DMO.Web/Endpoints/ControloDefinicoesEndpoints.cs",
+                "src/DMO.Web/Endpoints/Controlo/ControloCreateEndpoints.cs",
+                "src/DMO.Web/Endpoints/Controlo/ControloDefinicoesEndpoints.cs",
             ])
             .ToList();
 
@@ -309,7 +309,7 @@ internal static class P2T05ProductionScan
         "src/DMO.Application/JobOn/JobOnControlOutputsModels.cs",
         "src/DMO.Application/JobOn/JobOnControlOutputsService.cs",
         "src/DMO.Infrastructure/Persistence/Controlo/DmoPesoOutputRead.cs",
-        "src/DMO.Web/Endpoints/JobOnEndpoints.cs",
+        "src/DMO.Web/Endpoints/ToolJobOn/JobOnEndpoints.cs",
         "src/DMO.Web/Pages/JobOn/View.cshtml",
         "src/DMO.Web/Pages/JobOn/View.cshtml.cs",
     ];
@@ -373,7 +373,7 @@ internal static class P2T05ProductionScan
         "src/DMO.Infrastructure/Persistence/Controlo/EntityConfigurations/PesoReviewableIndexConfiguration.cs",
         "src/DMO.Infrastructure/Migrations/20260923171223_ControloApproveDomain",
         "src/DMO.Web/Pages/Controlo/Approve/",
-        "src/DMO.Web/Endpoints/ControloApproveEndpoints.cs",
+        "src/DMO.Web/Endpoints/Controlo/ControloApproveEndpoints.cs",
         "src/DMO.Web/wwwroot/css/dmo-controlo-approve.css",
         "src/DMO.Web/wwwroot/js/dmo-controlo-approve.js",
         // ---- P2-T07 (disclosed extension, P2-T07 Appendix B + OWNER CLARIFICATION): the Boquilhas
@@ -395,8 +395,8 @@ internal static class P2T05ProductionScan
         "src/DMO.Infrastructure/Migrations/20260924051151_BoquilhasDomain",
         "src/DMO.Infrastructure/Migrations/20260924130151_BoquilhasPreJobonAssociation",
         "src/DMO.Web/Pages/Boquilhas/",
-        "src/DMO.Web/Endpoints/BoquilhasEndpoints.cs",
-        "src/DMO.Web/Endpoints/BoquilhasDefinicoesEndpoints.cs",
+        "src/DMO.Web/Endpoints/Boquilhas/BoquilhasEndpoints.cs",
+        "src/DMO.Web/Endpoints/Boquilhas/BoquilhasDefinicoesEndpoints.cs",
         "src/DMO.Web/wwwroot/css/dmo-boquilhas.css",
         "src/DMO.Web/wwwroot/js/dmo-boquilhas.js",
         // ---- P2-T08 documents slice (disclosed extension): the Documents area consumes the P2-T05
@@ -404,7 +404,7 @@ internal static class P2T05ProductionScan
         // generation/storage, so its OWN paths are an accepted extension of the P2-T05 owned
         // surface (the documents slice pins its own boundary/regression rows).
         "src/DMO.Application/Documents/",
-        "src/DMO.Web/Endpoints/DocumentsEndpoints.cs",
+        "src/DMO.Web/Endpoints/Documents/DocumentsEndpoints.cs",
         // ---- Peso Comparação (disclosed extension, this slice): the Comparação aggregate
         // consumes the SHARED Peso read, the cm-context traversal read and the Peso calculation
         // path by contract and owns its persistence/application core, so its OWN paths are an

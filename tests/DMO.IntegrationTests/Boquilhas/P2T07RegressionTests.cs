@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using DMO.Application.Access;
 using DMO.Domain.Boquilhas;
 using DMO.IntegrationTests.JobOn;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Boquilhas;
 using DMO.Web.Pages.Boquilhas;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -84,7 +84,7 @@ public sealed class P2T07RegressionTests
     [Fact]
     public void A6R4_ExactlyTwentyEndpoints_NoLifecycleNoDocumentRoutes()
     {
-        var source = P2T04ProductionScan.Read("src/DMO.Web/Endpoints/BoquilhasEndpoints.cs");
+        var source = P2T04ProductionScan.Read("src/DMO.Web/Endpoints/Boquilhas/BoquilhasEndpoints.cs");
         var code = P2T04ProductionScan.WithoutRazorComments(source);
 
         // Exactly fifteen route handlers in the register surface: the MapGet/MapPost/MapPut calls
@@ -96,7 +96,7 @@ public sealed class P2T07RegressionTests
 
         // The Definições surface owns the repairer family (§34.3): exactly five handlers in the
         // separated file (list/add/rename repairers; list/set-clear machine assignments).
-        var definitionsSource = P2T04ProductionScan.Read("src/DMO.Web/Endpoints/BoquilhasDefinicoesEndpoints.cs");
+        var definitionsSource = P2T04ProductionScan.Read("src/DMO.Web/Endpoints/Boquilhas/BoquilhasDefinicoesEndpoints.cs");
         var definitionsHandlers = Regex.Matches(definitionsSource, @"group\.(Map(Get|Post|Put))\(")
             .Count;
         Assert.Equal(5, definitionsHandlers);

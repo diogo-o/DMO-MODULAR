@@ -151,7 +151,7 @@ public sealed class GlassDensityCorrectionRegressionTests
 
         // The new routes belong to the EXISTING Definições group: no new RequireAuthorization
         // policy declaration and no approve/admin policy appears in the endpoints file.
-        var endpoints = P2T04ProductionScan.Read("src/DMO.Web/Endpoints/ControloDefinicoesEndpoints.cs");
+        var endpoints = P2T04ProductionScan.Read("src/DMO.Web/Endpoints/Controlo/ControloDefinicoesEndpoints.cs");
         var policies = Regex.Matches(endpoints, @"RequireAuthorization\((?<policy>[^)]+)\)")
             .Select(match => match.Groups["policy"].Value)
             .ToList();

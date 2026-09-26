@@ -246,7 +246,7 @@ public sealed class Migration006ControloApproveDomainTests
         var repositorySource = P2T04ProductionScan.Read(
             "src/DMO.Infrastructure/Persistence/Controlo/PesoReviewRepository.cs");
         var endpointsSource = P2T04ProductionScan.Read(
-            "src/DMO.Web/Endpoints/ControloApproveEndpoints.cs");
+            "src/DMO.Web/Endpoints/Controlo/ControloApproveEndpoints.cs");
 
         Assert.DoesNotContain("MapPut", endpointsSource, StringComparison.Ordinal);
         Assert.DoesNotContain("MapDelete", endpointsSource, StringComparison.Ordinal);

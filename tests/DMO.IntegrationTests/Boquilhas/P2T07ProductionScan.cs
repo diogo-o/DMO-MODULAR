@@ -60,8 +60,8 @@ internal static class P2T07ProductionScan
         P2T04ProductionScan.FilesUnder("src/DMO.Web/Pages/Boquilhas", ".cs", ".cshtml")
             .Concat(
             [
-                "src/DMO.Web/Endpoints/BoquilhasEndpoints.cs",
-                "src/DMO.Web/Endpoints/BoquilhasDefinicoesEndpoints.cs",
+                "src/DMO.Web/Endpoints/Boquilhas/BoquilhasEndpoints.cs",
+                "src/DMO.Web/Endpoints/Boquilhas/BoquilhasDefinicoesEndpoints.cs",
             ])
             .ToList();
 
@@ -114,8 +114,8 @@ internal static class P2T07ProductionScan
         "src/DMO.Infrastructure/Persistence/Boquilhas/EntityConfigurations/Boquilha",
         "src/DMO.Infrastructure/Migrations/20260924051151_BoquilhasDomain",
         "src/DMO.Web/Pages/Boquilhas/",
-        "src/DMO.Web/Endpoints/BoquilhasEndpoints.cs",
-        "src/DMO.Web/Endpoints/BoquilhasDefinicoesEndpoints.cs",
+        "src/DMO.Web/Endpoints/Boquilhas/BoquilhasEndpoints.cs",
+        "src/DMO.Web/Endpoints/Boquilhas/BoquilhasDefinicoesEndpoints.cs",
         "src/DMO.Web/wwwroot/css/dmo-boquilhas.css",
         "src/DMO.Web/wwwroot/js/dmo-boquilhas.js",
     ];

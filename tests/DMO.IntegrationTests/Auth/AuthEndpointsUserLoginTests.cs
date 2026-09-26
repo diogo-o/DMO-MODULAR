@@ -6,7 +6,7 @@ using DMO.Application.Authentication;
 using DMO.IntegrationTests.Auth.Fakes;
 using DMO.IntegrationTests.Host;
 using DMO.Web.Auth;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Access;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;

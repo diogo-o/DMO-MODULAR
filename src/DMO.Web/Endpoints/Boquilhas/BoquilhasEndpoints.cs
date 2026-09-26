@@ -5,7 +5,7 @@ using DMO.Application.Session;
 using DMO.Domain.Tools;
 using DMO.Web.Authorization;
 
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.Boquilhas;
 
 /// <summary>
 /// Minimal API surface of Boquilhas — the production movement register (P2-T07 OWNER

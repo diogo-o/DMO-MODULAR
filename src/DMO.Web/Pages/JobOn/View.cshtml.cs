@@ -2,7 +2,7 @@ using DMO.Application.JobOn;
 using DMO.Application.Session;
 using DMO.Application.Tools;
 using DMO.Web.Authorization;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.ToolJobOn;
 using DMO.Web.Frontend.Shared.Contracts;
 using DMO.Web.Frontend.Shell;
 using Microsoft.AspNetCore.Authorization;

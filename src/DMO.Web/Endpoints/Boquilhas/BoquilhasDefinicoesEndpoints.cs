@@ -1,7 +1,7 @@
 using DMO.Application.Boquilhas;
 using ControloDefinicoesErrors = DMO.Application.Controlo.Settings.ControloDefinicoesValidationErrors;
 
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.Boquilhas;
 
 /// <summary>
 /// The <c>Boquilhas > Definições</c> minimal-API surface: the repairer register and the independent

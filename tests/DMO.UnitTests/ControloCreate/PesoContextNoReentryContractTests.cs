@@ -1,6 +1,6 @@
 using System.Reflection;
 using DMO.Application.Controlo.Pesos;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Controlo;
 
 namespace DMO.UnitTests.ControloCreate;
 

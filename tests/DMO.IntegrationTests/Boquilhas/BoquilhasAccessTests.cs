@@ -1,7 +1,7 @@
 using DMO.Application.Access;
 using DMO.IntegrationTests.Navigation;
 using DMO.Web.Authorization;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Boquilhas;
 using DMO.Web.Pages.Boquilhas;
 using Microsoft.AspNetCore.Mvc.Testing;
 

@@ -2,7 +2,7 @@ using System.Reflection;
 using DMO.Application.Repositories;
 using DMO.Application.Tools;
 using DMO.Domain.Tools;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.ToolJobOn;
 using DMO.Web.Frontend.Shared.Contracts;
 using DMO.Web.Pages.JobOn;
 
@@ -313,7 +313,7 @@ public sealed class ToolContractTests
 
         types.AddRange(application.GetTypes().Where(type => type.Namespace == "DMO.Application.Tools"));
         types.AddRange(web.GetTypes().Where(type =>
-            type.Namespace is "DMO.Web.Endpoints" or "DMO.Web.Pages.JobOn" &&
+            type.Namespace is "DMO.Web.Endpoints.ToolJobOn" or "DMO.Web.Pages.JobOn" &&
             type.Name.Contains("Tool", StringComparison.Ordinal)));
 
         return types.Distinct();

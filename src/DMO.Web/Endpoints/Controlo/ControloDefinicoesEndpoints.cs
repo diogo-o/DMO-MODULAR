@@ -3,7 +3,7 @@ using DMO.Application.Controlo.Settings;
 using DMO.Domain.Controlo;
 using DMO.Web.Authorization;
 
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.Controlo;
 
 /// <summary>
 /// Minimal API surface of <c>Controlo_Create → Definições</c> (P2-T05 contract §21.3 routes

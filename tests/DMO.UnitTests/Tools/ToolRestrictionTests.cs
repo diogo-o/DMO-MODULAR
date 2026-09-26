@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using DMO.Application.Repositories;
 using DMO.Application.Tools;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.ToolJobOn;
 
 namespace DMO.UnitTests.Tools;
 
@@ -109,7 +109,7 @@ public sealed class ToolRestrictionTests
 
         // The produced bodies are built from code identifiers only; the sole identity identifiers are
         // the canonical ones, and no forbidden identity token appears as an identifier anywhere.
-        var endpointSource = CodeOnly(SourceOf("src/DMO.Web/Endpoints/FerramentasEndpoints.cs"));
+        var endpointSource = CodeOnly(SourceOf("src/DMO.Web/Endpoints/ToolJobOn/FerramentasEndpoints.cs"));
         var endpointIdentifiers = Identifiers(endpointSource);
 
         Assert.Equal(
@@ -359,7 +359,7 @@ public sealed class ToolRestrictionTests
 
         // The mapped Tool endpoints use exactly one read verb and the contracted create verb; there is
         // no PUT/PATCH/DELETE route metadata and exactly one mapping entry point.
-        var endpointSource = CodeOnly(SourceOf("src/DMO.Web/Endpoints/FerramentasEndpoints.cs"));
+        var endpointSource = CodeOnly(SourceOf("src/DMO.Web/Endpoints/ToolJobOn/FerramentasEndpoints.cs"));
         var verbs = MatchGroupFrom(endpointSource, @"\bMap(Get|Post|Put|Patch|Delete)\s*\(")
             .Distinct(StringComparer.Ordinal)
             .OrderBy(verb => verb, StringComparer.Ordinal)

@@ -5,8 +5,9 @@ using DMO.Application.Session;
 using DMO.Application.Tools;
 using DMO.Domain.Tools;
 using DMO.Web.Authorization;
+using DMO.Web.Endpoints.ToolJobOn;
 
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.Controlo;
 
 /// <summary>
 /// Minimal API surface of Controlo Approve (P2-T06 contract §13.2 routes 3–9; routes 1–2 are the

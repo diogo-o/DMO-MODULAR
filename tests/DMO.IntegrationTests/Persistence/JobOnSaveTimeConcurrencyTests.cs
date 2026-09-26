@@ -2,7 +2,7 @@ using System.Data;
 using DMO.Application.JobOn;
 using DMO.Infrastructure.Persistence;
 using DMO.Infrastructure.Persistence.ToolJobOn;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.ToolJobOn;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;

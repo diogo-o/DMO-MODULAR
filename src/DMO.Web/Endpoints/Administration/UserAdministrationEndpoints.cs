@@ -2,7 +2,7 @@ using DMO.Application.Accounts;
 using DMO.Application.UserAdministration;
 using DMO.Web.Authorization;
 
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.Administration;
 
 /// <summary>
 /// Minimal API surface of the ADMIN-only USER administration (P1-T05).

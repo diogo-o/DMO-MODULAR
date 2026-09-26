@@ -6,7 +6,7 @@ using DMO.Application.Tools;
 using DMO.Domain.Controlo;
 using DMO.Domain.Tools;
 using DMO.Infrastructure.Configuration;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Controlo;
 using Microsoft.Extensions.Configuration;
 
 namespace DMO.UnitTests.ControloCreate;

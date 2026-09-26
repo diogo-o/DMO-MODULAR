@@ -6,7 +6,7 @@ using DMO.Application.Tools;
 using DMO.Domain.Controlo;
 using DMO.Domain.JobOn;
 using DMO.Domain.Tools;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Controlo;
 using DomainJobOn = DMO.Domain.JobOn.JobOn;
 
 namespace DMO.UnitTests.ControloCreate;

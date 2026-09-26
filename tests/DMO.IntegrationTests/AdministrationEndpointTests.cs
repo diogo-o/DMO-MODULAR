@@ -96,7 +96,7 @@ public sealed class AdministrationEndpointTests : IClassFixture<DmoWebApplicatio
             AllowAutoRedirect = false,
         });
 
-        var response = await client.GetAsync(DMO.Web.Endpoints.UserAdministrationEndpoints.UsersBasePath);
+        var response = await client.GetAsync(DMO.Web.Endpoints.Administration.UserAdministrationEndpoints.UsersBasePath);
 
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains(

@@ -3,7 +3,7 @@ using DMO.Application.Tools;
 using DMO.Domain.Tools;
 using DMO.Web.Authorization;
 
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.ToolJobOn;
 
 /// <summary>
 /// Minimal API surface of the contextual Ferramentas Light capability (canonical Tool search/create).

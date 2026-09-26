@@ -2,7 +2,7 @@ using System.Reflection;
 using DMO.Application.Repositories;
 using DMO.Application.Tools;
 using DMO.Domain.Tools;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.ToolJobOn;
 using DMO.Web.Frontend.Shared.Contracts;
 using DMO.Web.Pages.JobOn;
 
@@ -42,9 +42,9 @@ public sealed class ToolOrchestrationTests
         "DMO.Application.Tools.ToolSearchItem",
         "DMO.Application.Tools.ToolSearchQuery",
         "DMO.Application.Tools.ToolSelection",
-        "DMO.Web.Endpoints.FerramentasEndpoints.ToolCreatedResponse",
-        "DMO.Web.Endpoints.FerramentasEndpoints.ToolSearchItemResponse",
-        "DMO.Web.Endpoints.FerramentasEndpoints.ToolSearchResponse",
+        "DMO.Web.Endpoints.ToolJobOn.FerramentasEndpoints.ToolCreatedResponse",
+        "DMO.Web.Endpoints.ToolJobOn.FerramentasEndpoints.ToolSearchItemResponse",
+        "DMO.Web.Endpoints.ToolJobOn.FerramentasEndpoints.ToolSearchResponse",
         "DMO.Web.Pages.JobOn.ToolCreatePrefill",
     ];
 

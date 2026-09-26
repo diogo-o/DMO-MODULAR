@@ -1,4 +1,4 @@
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.Core;
 
 /// <summary>
 /// Minimal technical runtime surface.

@@ -4,7 +4,7 @@ using DMO.Application.Tools;
 using DMO.Domain.Tools;
 using DMO.Web.Authorization;
 
-namespace DMO.Web.Endpoints;
+namespace DMO.Web.Endpoints.ToolJobOn;
 
 /// <summary>
 /// Minimal API surface of the Job On occurrence (P2-T04 contract §13.2 routes 2, 5, 6, 8, 10 and 11,

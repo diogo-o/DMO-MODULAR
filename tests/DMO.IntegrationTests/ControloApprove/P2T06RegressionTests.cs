@@ -7,7 +7,7 @@ using DMO.Domain.Controlo;
 using DMO.Infrastructure.Persistence.Entities;
 using DMO.IntegrationTests.JobOn;
 using DMO.Web.Authorization;
-using DMO.Web.Endpoints;
+using DMO.Web.Endpoints.Controlo;
 using DMO.Web.Pages.Controlo.Approve;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -485,7 +485,7 @@ public sealed class P2T06RegressionTests
             ControloApproveEndpoints.Policy);
 
         // The endpoint mapping methods declare exactly the one group-level policy.
-        var endpointSource = P2T04ProductionScan.Read("src/DMO.Web/Endpoints/ControloApproveEndpoints.cs");
+        var endpointSource = P2T04ProductionScan.Read("src/DMO.Web/Endpoints/Controlo/ControloApproveEndpoints.cs");
         Assert.Contains("RequireAuthorization(Policy)", endpointSource, StringComparison.Ordinal);
         Assert.DoesNotContain("RequireAuthorization(\"dmo.module.controlo-create\")", endpointSource, StringComparison.Ordinal);
     }

@@ -254,8 +254,8 @@ internal static class P2T04ProductionScan
             .Concat(FilesUnder("src/DMO.Web/Pages/Ferramentas", ".cs", ".cshtml"))
             .Concat(
             [
-                "src/DMO.Web/Endpoints/JobOnEndpoints.cs",
-                "src/DMO.Web/Endpoints/FerramentasEndpoints.cs",
+                "src/DMO.Web/Endpoints/ToolJobOn/JobOnEndpoints.cs",
+                "src/DMO.Web/Endpoints/ToolJobOn/FerramentasEndpoints.cs",
             ])
             .ToList();
 

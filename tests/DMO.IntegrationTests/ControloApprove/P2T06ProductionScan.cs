@@ -63,7 +63,7 @@ internal static class P2T06ProductionScan
     /// <summary>The new P2-T06 Web sources (contract Appendix B).</summary>
     public static IReadOnlyList<string> WebSourcePaths { get; } =
         P2T04ProductionScan.FilesUnder("src/DMO.Web/Pages/Controlo/Approve", ".cs", ".cshtml")
-            .Concat(["src/DMO.Web/Endpoints/ControloApproveEndpoints.cs"])
+            .Concat(["src/DMO.Web/Endpoints/Controlo/ControloApproveEndpoints.cs"])
             .ToList();
 
     /// <summary>The new P2-T06 assets (contract §21.3).</summary>
