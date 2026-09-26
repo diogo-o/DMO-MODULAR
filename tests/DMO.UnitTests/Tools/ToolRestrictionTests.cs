@@ -218,6 +218,9 @@ public sealed class ToolRestrictionTests
         // P2-T07 (disclosed in the implementation response) declares NO DbSet member anywhere: the
         // Boquilhas repository uses the same <c>IQueryable</c> accessor convention for reads and
         // <c>_context.Set&lt;TEntity&gt;()</c> inline for its writes, so this inventory is unchanged.
+        // Peso Comparação (disclosed in the implementation response): the three Comparação entities
+        // join the set with the same private-DbSet convention (the Comparação aggregate lives in
+        // its OWN three tables); none carries Tool vocabulary.
         var dbSetArguments = MatchGroup(allSources, @"DbSet<\s*(\w+)\s*>")
             .Distinct(StringComparer.Ordinal)
             .OrderBy(name => name, StringComparer.Ordinal)
@@ -225,7 +228,8 @@ public sealed class ToolRestrictionTests
 
         Assert.Equal(
             [
-                "AdminAccountEntity", "EmailListEntity", "EmailListRecipientEntity",
+                "AdminAccountEntity", "ComparacaoCmSubjectEntity", "ComparacaoEntity",
+                "ComparacaoMeasurementRowEntity", "EmailListEntity", "EmailListRecipientEntity",
                 "EmailTemplateEntity", "GlassDensitySettingEntity", "JobOnEntity",
                 "MachineRepairerAssignmentEntity", "PdfDirectorySettingsEntity", "PesoEntity",
                 "PesoMeasurementRowEntity", "PesoReviewDecisionEntity", "RepairerEntity",

@@ -2,6 +2,7 @@ using DMO.Application.Accounts;
 using DMO.Application.Authentication;
 using DMO.Application.Boquilhas;
 using DMO.Application.ControloApprove;
+using DMO.Application.ControloComparacao;
 using DMO.Application.ControloCreate;
 using DMO.Application.Documents;
 using DMO.Application.JobOn;
@@ -158,6 +159,13 @@ try
     // by the accepted `controlo-approve` policy and stays denied to every caller until P2-T10
     // registers availability (contract §13.3).
     builder.Services.AddScoped<IControloApproveService, ControloApproveService>();
+
+    // ---- Peso Comparação slice: the optional per-CM re-measurement core ---------------------------
+    // The Comparação service over the SAME peso_id (composing the shared Peso read, the cm-context
+    // traversal read and the Comparação repository). No policy, no availability entry, no
+    // destination route and no second registry is added here: the Comparação is an optional child
+    // of the initial Peso and never changes its values, status or approval.
+    builder.Services.AddScoped<IControloComparacaoService, ControloComparacaoService>();
 
     // ---- P2-T08 documents: Peso PDF generation/storage + manual email send (this slice) ---------
     // The generation service composes the SHARED P2-T05 Peso read (the same read model Create and

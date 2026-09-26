@@ -399,6 +399,19 @@ internal static class P2T05ProductionScan
         // surface (the documents slice pins its own boundary/regression rows).
         "src/DMO.Application/Documents/",
         "src/DMO.Web/Endpoints/DocumentsEndpoints.cs",
+        // ---- Peso Comparação (disclosed extension, this slice): the Comparação aggregate
+        // consumes the SHARED Peso read, the cm-context traversal read and the Peso calculation
+        // path by contract and owns its persistence/application core, so its OWN paths are an
+        // accepted extension of the P2-T05 owned surface (the Comparação surface pins its own
+        // boundary/regression rows).
+        "src/DMO.Domain/ControloComparacao/",
+        "src/DMO.Application/ControloComparacao/",
+        "src/DMO.Application/Repositories/IComparacao",
+        "src/DMO.Application/Persistence/Comparacao",
+        "src/DMO.Infrastructure/Persistence/Comparacao",
+        "src/DMO.Infrastructure/Persistence/Entities/Comparacao",
+        "src/DMO.Infrastructure/Persistence/EntityConfigurations/Comparacao",
+        "src/DMO.Infrastructure/Migrations/20260925071139_ControloComparacaoDomain",
         // ---- P2-T08 outputs slice (disclosed extension, BND7-paired): the Job On sheet exposes
         // the Peso outputs of the occurrence (the jobon_id → peso_id read projection and the
         // controlled peso-pdf open route), so the Job On owned files of the slice necessarily

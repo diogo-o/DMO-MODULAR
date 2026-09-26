@@ -42,7 +42,10 @@ public sealed class MigrationRunnerTests
         // single DbContext, growing the modelled set by exactly one table. P2-T07 (disclosed
         // extension, P2-T07 OWNER CLARIFICATION): the THREE Boquilhas register tables are mapped by
         // the same single DbContext, growing the modelled set by exactly those three tables (the
-        // unreviewed 007 lifecycle tables are gone). The assertion is not
+        // unreviewed 007 lifecycle tables are gone). Peso Comparação slice (disclosed extension,
+        // ControloComparacaoDomain migration): the THREE Comparação tables (comparacoes,
+        // comparacao_cm_subjects, comparacao_measurement_rows) are mapped by the same single
+        // DbContext, growing the modelled set by exactly those three tables. The assertion is not
         // weakened â€” it still pins the complete modelled table set, and the forbidden-table
         // non-effect below is unchanged.
         var modelled = context.Model.GetEntityTypes()
@@ -54,7 +57,8 @@ public sealed class MigrationRunnerTests
             new[]
             {
                 "admin_accounts", "boquilha_movement_audit", "boquilha_movements", "boquilhas",
-                "bq_contexts", "cm_contexts", "email_list_recipients", "email_lists",
+                "bq_contexts", "cm_contexts", "comparacao_cm_subjects", "comparacao_measurement_rows", "comparacoes",
+                "email_list_recipients", "email_lists",
                 "email_templates", "glass_density_settings", "job_ons", "machine_repairer_assignments",
                 "mf_contexts", "pdf_directory_settings", "peso_measurement_rows", "peso_review_decisions", "pesos", "repairers",
                 "template_modules", "templates", "tool_machines", "tools", "users",

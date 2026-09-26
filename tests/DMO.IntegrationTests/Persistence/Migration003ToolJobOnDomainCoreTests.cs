@@ -79,6 +79,16 @@ public sealed class Migration003ToolJobOnDomainCoreTests
         "boquilha_movement_audit", "boquilha_movements", "boquilhas",
     ];
 
+    /// <summary>
+    /// The THREE Peso Comparação tables of migration 010 (disclosed in the implementation
+    /// response): the comparison aggregate lives in its OWN tables and never touches the initial
+    /// Peso rows.
+    /// </summary>
+    private static readonly string[] ComparacaoTables =
+    [
+        "comparacoes", "comparacao_cm_subjects", "comparacao_measurement_rows",
+    ];
+
     /// <summary>EF's own migration bookkeeping table (never a product table).</summary>
     private const string MigrationHistoryTable = "__EFMigrationsHistory";
 
@@ -236,9 +246,10 @@ public sealed class Migration003ToolJobOnDomainCoreTests
         // migration 006 adds exactly the one review-decision table; the P2-T07 Boquilhas
         // migration 007 adds exactly the THREE Boquilhas register tables (OWNER CLARIFICATION:
         // the unreviewed 007 was corrected pre-closure — the lifecycle tables are gone; the
-        // final product-table count is 23). The P2-T04 rows keep pinning the complete set.
+        // final product-table count is 23); the Peso Comparação migration 010 adds exactly the
+        // THREE comparison tables. The P2-T04 rows keep pinning the complete set.
         Assert.Equal(
-            Sorted([.. FoundationTables, .. DomainCoreTables, .. ControloTables, GlassDensitySettingsTable, PesoReviewDecisionsTable, .. BoquilhasTables, MigrationHistoryTable]),
+            Sorted([.. FoundationTables, .. DomainCoreTables, .. ControloTables, GlassDensitySettingsTable, PesoReviewDecisionsTable, .. BoquilhasTables, .. ComparacaoTables, MigrationHistoryTable]),
             tables);
 
         foreach (var forbidden in ForbiddenTables)
@@ -572,14 +583,10 @@ public sealed class Migration003ToolJobOnDomainCoreTests
                 && !name.StartsWith("DmoDbContextModelSnapshot", StringComparison.Ordinal))
             .ToList();
 
-        // Exactly EIGHT migrations exist: 001, 002, the P2-T04 migration, the P2-T05 Controlo
-        // migration (disclosed extension), the glass-density correction migration 005
-        // (post-closure correction; Architect review observation N-1), the P2-T06 approve
-        // migration 006, the P2-T07 Boquilhas migration 007 (disclosed extension,
-        // P2-T07 contract §28) and the §34 OWNER-clarification delta migration 008
-        // (BoquilhasPreJobonAssociation — disclosed extension of the same disclosed workstream:
-        // the transitional pré-JobOn anchor).
-        Assert.Equal(8, migrationFiles.Count);
+        // Exactly EIGHT migrations existed at the last disclosed baseline; the P2-T08 email-routing
+        // migration 009 (a second disclosed delta) and the Peso Comparação migration 010 (this
+        // slice) join the set — the file-pair count is now TEN. The P2-T04 pair is still tracked.
+        Assert.Equal(10, migrationFiles.Count);
         var toolJobOnMigrations = migrationFiles
             .Where(name => name.EndsWith($"_{ToolJobOnMigrationName}.cs", StringComparison.Ordinal))
             .ToList();
@@ -613,7 +620,7 @@ public sealed class Migration003ToolJobOnDomainCoreTests
         // OWN designer is a frozen historical artifact of its generation time and still records
         // the ten tables it shipped with.
         var expectedTables = Sorted([.. FoundationTables, .. DomainCoreTables, .. ControloTables]);
-        var expectedSnapshotTables = Sorted([.. FoundationTables, .. DomainCoreTables, .. ControloTables, GlassDensitySettingsTable, PesoReviewDecisionsTable, .. BoquilhasTables]);
+        var expectedSnapshotTables = Sorted([.. FoundationTables, .. DomainCoreTables, .. ControloTables, GlassDensitySettingsTable, PesoReviewDecisionsTable, .. BoquilhasTables, .. ComparacaoTables]);
         var expectedP2T04DesignerTables = Sorted([.. FoundationTables, .. DomainCoreTables]);
 
         var snapshot = await File.ReadAllTextAsync(Path.Combine(migrationsDirectory, "DmoDbContextModelSnapshot.cs"));
@@ -644,17 +651,23 @@ public sealed class Migration003ToolJobOnDomainCoreTests
         // review observation N-1: the correction migration is the FIFTH overall); P2-T06 adds
         // the Controlo Approve migration 006 on top (disclosed extension); P2-T07 adds the
         // Boquilhas migration 007 on top (disclosed extension, P2-T07 contract §28); the §34
-        // OWNER-clarification delta adds migration 008 (BoquilhasPreJobonAssociation) on top.
+        // OWNER-clarification delta adds migration 008 (BoquilhasPreJobonAssociation) on top;
+        // the P2-T08 delta adds migration 009 (EmailTemplateGroupRouting); the Peso Comparação
+        // slice adds migration 010 (ControloComparacaoDomain) on top (this slice).
         var latestIsControlo = latest.EndsWith(ControloCreateMigrationName, StringComparison.Ordinal);
         var latestIsCorrection = latest.EndsWith(CorrectionMigrationName, StringComparison.Ordinal);
         var latestIsP2T06 = latest.EndsWith("ControloApproveDomain", StringComparison.Ordinal);
         var latestIsP2T07 = latest.EndsWith("BoquilhasDomain", StringComparison.Ordinal);
         var latestIsPreJobon = latest.EndsWith("BoquilhasPreJobonAssociation", StringComparison.Ordinal);
+        var latestIsEmailRouting = latest.EndsWith("EmailTemplateGroupRouting", StringComparison.Ordinal);
+        var latestIsComparacao = latest.EndsWith("ControloComparacaoDomain", StringComparison.Ordinal);
         Assert.True(
-            latestIsControlo || latestIsCorrection || latestIsP2T06 || latestIsP2T07 || latestIsPreJobon,
+            latestIsControlo || latestIsCorrection || latestIsP2T06 || latestIsP2T07 || latestIsPreJobon
+            || latestIsEmailRouting || latestIsComparacao,
             $"The latest migration must be the Controlo domain, the glass-density correction, " +
-            $"the P2-T06 Controlo Approve domain, the P2-T07 Boquilhas domain or the §34 delta " +
-            $"(BoquilhasPreJobonAssociation), was {latest}.");
+            $"the P2-T06 Controlo Approve domain, the P2-T07 Boquilhas domain, the §34 delta " +
+            $"(BoquilhasPreJobonAssociation), the P2-T08 email-routing delta or the Peso " +
+            $"Comparação domain, was {latest}.");
 
         try
         {

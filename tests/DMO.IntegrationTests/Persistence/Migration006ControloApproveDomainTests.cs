@@ -32,8 +32,10 @@ public sealed class Migration006ControloApproveDomainTests
     /// <summary>The exact single new table of the slice.</summary>
     private const string DecisionTable = "peso_review_decisions";
 
-    /// <summary>The seven migrations, in generation order (this slice owns the SIXTH; P2-T07 adds
-    /// the SEVENTH — disclosed extension, P2-T07 contract §28).</summary>
+    /// <summary>The TEN migrations, in generation order (this slice owns the SIXTH; P2-T07 adds
+    /// the SEVENTH — disclosed extension, P2-T07 contract §28; the P2-T08 delta adds the
+    /// NINTH (EmailTemplateGroupRouting) and the Peso Comparação slice adds the TENTH
+    /// (ControloComparacaoDomain)).</summary>
     private static readonly string[] AllMigrationIds =
     [
         "20260922001736_AccountAndTemplateFoundation",
@@ -44,15 +46,19 @@ public sealed class Migration006ControloApproveDomainTests
         "20260923171223_ControloApproveDomain",
         "20260924051151_BoquilhasDomain",
         "20260924130151_BoquilhasPreJobonAssociation",
+        "20260924182527_EmailTemplateGroupRouting",
+        "20260925071139_ControloComparacaoDomain",
     ];
 
-    /// <summary>The complete public product-table register after all seven migrations (the closed
-    /// 20-table state + EXACTLY the one decision table + the THREE Boquilhas register tables —
-    /// OWNER CLARIFICATION: the unreviewed 007 was corrected pre-closure; no lifecycle tables).</summary>
+    /// <summary>The complete public product-table register after all ten migrations (the closed
+    /// 20-table state + EXACTLY the one decision table + the THREE Boquilhas register tables +
+    /// the THREE Comparação tables — OWNER CLARIFICATION: the unreviewed 007 was corrected
+    /// pre-closure; no lifecycle tables; the P2-T08 delta adds no table).</summary>
     private static readonly string[] PublicProductTables =
     [
         "admin_accounts", "boquilha_movement_audit", "boquilha_movements", "boquilhas",
-        "bq_contexts", "cm_contexts", "email_list_recipients", "email_lists",
+        "bq_contexts", "cm_contexts", "comparacao_cm_subjects", "comparacao_measurement_rows",
+        "comparacoes", "email_list_recipients", "email_lists",
         "email_templates", "glass_density_settings", "job_ons", "machine_repairer_assignments",
         "mf_contexts", "pdf_directory_settings", "peso_measurement_rows", "peso_review_decisions",
         "pesos", "repairers", "template_modules", "templates", "tool_machines", "tools", "users",
@@ -82,7 +88,7 @@ public sealed class Migration006ControloApproveDomainTests
             "SELECT table_name FROM information_schema.tables " +
             "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"));
 
-        Assert.Equal(24, tables.Count); // 23 product tables + history
+        Assert.Equal(27, tables.Count); // 26 product tables + history
         Assert.Equal(Sorted([.. PublicProductTables, MigrationHistoryTable]), tables);
     }
 

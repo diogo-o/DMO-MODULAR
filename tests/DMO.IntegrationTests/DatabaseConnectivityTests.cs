@@ -72,10 +72,11 @@ public sealed class DatabaseConnectivityTests
         // Action: run the migration mechanism from the fresh schema.
         var first = await runner.ApplyPendingAsync();
 
-        // Assertions: the eight migrations, in generation order (001, 002, P2-T04 domain core,
+        // Assertions: the ten migrations, in generation order (001, 002, P2-T04 domain core,
         // P2-T05 Controlo domain, glass-density correction, P2-T06 approve domain, P2-T07
-        // Boquilhas domain, the §34 OWNER-clarification delta migration 008).
-        Assert.Equal(8, first.AppliedCount);
+        // Boquilhas domain, the §34 OWNER-clarification delta migration 008, the P2-T08
+        // email-routing delta 009 and the Peso Comparação domain 010).
+        Assert.Equal(10, first.AppliedCount);
         Assert.Equal(
             new[]
             {
@@ -87,18 +88,20 @@ public sealed class DatabaseConnectivityTests
                 "20260923171223_ControloApproveDomain",
                 "20260924051151_BoquilhasDomain",
                 "20260924130151_BoquilhasPreJobonAssociation",
+                "20260924182527_EmailTemplateGroupRouting",
+                "20260925071139_ControloComparacaoDomain",
             },
             first.AppliedMigrations);
 
-        // The schema is exactly the twenty-three product tables + __EFMigrationsHistory — nothing
-        // more (the raw count is 24; the final product-table count after the OWNER CLARIFICATION
-        // correction is 23, see the P2-T07 implementation response).
+        // The schema is exactly the twenty-six product tables + __EFMigrationsHistory — nothing
+        // more (the raw count is 27; the Comparação slice adds exactly the three comparison tables).
         var tables = await ReadPublicTablesAsync(context);
         Assert.Equal(
             new[]
             {
                 "__EFMigrationsHistory", "admin_accounts", "boquilha_movement_audit",
                 "boquilha_movements", "boquilhas", "bq_contexts", "cm_contexts",
+                "comparacao_cm_subjects", "comparacao_measurement_rows", "comparacoes",
                 "email_list_recipients", "email_lists", "email_templates", "glass_density_settings",
                 "job_ons", "machine_repairer_assignments", "mf_contexts", "pdf_directory_settings",
                 "peso_measurement_rows", "peso_review_decisions", "pesos", "repairers",

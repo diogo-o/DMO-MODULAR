@@ -524,6 +524,10 @@ internal static class P2T04ProductionScan
         // ---- P2-T07 (disclosed): the new Boquilhas test surface ---------------------------
         "tests/DMO.UnitTests/Boquilhas/",
         "tests/DMO.IntegrationTests/Boquilhas/",
+        // ---- Peso Comparacao slice (disclosed): the new ControloComparacao unit-test surface --
+        // (the integration-side Comparacao persistence tests are disclosed by file name in
+        // NewP2T04PersistenceTestFiles below)
+        "tests/DMO.UnitTests/ControloComparacao/",
     ];
 
     /// <summary>
@@ -605,6 +609,10 @@ internal static class P2T04ProductionScan
         // ---- Owner-clarification Boquilhas §34 delta (disclosed): the new env-gated
         // persistence tests of the pré-JobOn register + association slice --------------------
         "BoquilhasPreJobonAssociationIntegrationTests.cs",
+        // ---- Peso Comparacao slice (disclosed): the new env-gated Comparacao persistence
+        // tests (repository + migration rows, same skip gate as every DB-class row) ----------
+        "ComparacaoRepositoryIntegrationTests.cs",
+        "Migration009ControloComparacaoDomainTests.cs",
     ];
 
     /// <summary>Returns whether a repository-relative test path belongs to the new P2-T04 surface.</summary>

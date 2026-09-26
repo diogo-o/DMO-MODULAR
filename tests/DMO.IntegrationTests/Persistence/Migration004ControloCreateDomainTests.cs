@@ -43,14 +43,17 @@ public sealed class Migration004ControloCreateDomainTests
     private static readonly string[] PublicProductTables =
     [
         "admin_accounts", "boquilha_movement_audit", "boquilha_movements", "boquilhas",
-        "bq_contexts", "cm_contexts", "email_list_recipients", "email_lists",
+        "bq_contexts", "cm_contexts", "comparacao_cm_subjects", "comparacao_measurement_rows",
+        "comparacoes", "email_list_recipients", "email_lists",
         "email_templates", "glass_density_settings", "job_ons", "machine_repairer_assignments",
         "mf_contexts", "pdf_directory_settings", "peso_measurement_rows", "pesos", "repairers",
         "template_modules", "templates", "tool_machines", "tools", "users", "peso_review_decisions",
     ];
 
-    /// <summary>The seven migrations, in generation order (§25.1; the correction migration 005 is
-    /// the FIFTH overall — Architect review observation N-1; P2-T07 migration 007 is the SEVENTH).</summary>
+    /// <summary>The TEN migrations, in generation order (§25.1; the correction migration 005 is
+    /// the FIFTH overall — Architect review observation N-1; P2-T07 migration 007 is the SEVENTH;
+    /// the P2-T08 delta migration 009 (EmailTemplateGroupRouting) and the Peso Comparação
+    /// migration 010 (ControloComparacaoDomain — this slice) complete the set).</summary>
     private static readonly string[] AllMigrationIds =
     [
         "20260922001736_AccountAndTemplateFoundation",
@@ -61,6 +64,8 @@ public sealed class Migration004ControloCreateDomainTests
         "20260923171223_ControloApproveDomain",
         "20260924051151_BoquilhasDomain",
         "20260924130151_BoquilhasPreJobonAssociation",
+        "20260924182527_EmailTemplateGroupRouting",
+        "20260925071139_ControloComparacaoDomain",
     ];
 
     /// <summary>The 22 contracted CHECK constraints of the eight tables (Â§17.1).</summary>
@@ -88,11 +93,16 @@ public sealed class Migration004ControloCreateDomainTests
         ("email_templates", "email_templates_subject_required_check"),
         ("email_templates", "email_templates_body_required_check"),
         ("email_templates", "email_templates_document_type_check"),
+        // P2-T08 delta (migration 009): the disclosed email-routing CHECK on the SAME
+        // email_templates table.
+        ("email_templates", "email_templates_machine_group_check"),
     ];
 
     /// <summary>
     /// The seven contracted foreign keys of the eight tables, every one <c>ON DELETE RESTRICT</c>
-    /// (Â§17.2, AC-P1).
+    /// (Â§17.2, AC-P1). The P2-T08 email-routing delta (migration 009) adds the one disclosed
+    /// eighth FK <c>email_templates_email_list_id_fkey</c> on the same <c>email_templates</c>
+    /// table — a same-table additive disclosure.
     /// </summary>
     private static readonly string[] ContractedForeignKeys =
     [
@@ -103,6 +113,7 @@ public sealed class Migration004ControloCreateDomainTests
         "FK_peso_measurement_rows_pesos_peso_id",
         "FK_machine_repairer_assignments_repairers_repairer_id",
         "FK_email_list_recipients_email_lists_email_list_id",
+        "email_templates_email_list_id_fkey",
     ];
 
     /// <summary>The six contracted unique keys of the eight tables (Â§4.2-equivalent register).</summary>
@@ -158,7 +169,7 @@ public sealed class Migration004ControloCreateDomainTests
             "SELECT table_name FROM information_schema.tables " +
             "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"));
 
-        Assert.Equal(24, tables.Count);
+        Assert.Equal(27, tables.Count); // 26 product tables + history
         Assert.Equal(Sorted([.. PublicProductTables, MigrationHistoryTable]), tables);
     }
 
@@ -201,7 +212,14 @@ public sealed class Migration004ControloCreateDomainTests
             // Disclosed P2-T06 extension: the single AUTHORIZED decision table
             // (peso_review_decisions, P2-T06 contract §6) is the one explicit exception to the
             // P2-T05-time "no decision table" boundary — everything else stays forbidden.
-            Assert.DoesNotContain(tables, table => table != "peso_review_decisions" && matches(table));
+            // Disclosed Comparação extension: the THREE Comparação tables carry a "compara"-matching
+            // identity (comparacoes/comparacao_cm_subjects/comparacao_measurement_rows) that was
+            // not forbidden by this migration-004-specific row — the comparison aggregate lives in
+            // its OWN tables and never touches the initial Peso rows.
+            Assert.DoesNotContain(tables, table =>
+                (table != "peso_review_decisions"
+                 && !table.StartsWith("compara", StringComparison.Ordinal))
+                && matches(table));
         }
     }
 
@@ -252,7 +270,7 @@ public sealed class Migration004ControloCreateDomainTests
 
         var names = rows.Select(row => row.Split('|', 2)[0]).ToList();
         Assert.Equal(Sorted(ContractedForeignKeys.ToList()), Sorted(names));
-        Assert.Equal(7, rows.Count);
+        Assert.Equal(8, rows.Count);
 
         foreach (var row in rows)
         {
@@ -388,14 +406,15 @@ public sealed class Migration004ControloCreateDomainTests
         await using var context = PersistenceTestDatabase.CreateContext();
         await PersistenceTestDatabase.ApplyMigrationsAsync(context);
 
-        // P2-T07 (disclosed extension): SEVEN migrations are applied with the database up to date.
-        Assert.Equal(8, (await context.Database.GetAppliedMigrationsAsync()).Count());
+        // P2-T07 (disclosed extension): SEVEN migrations are applied with the database up to date;
+        // the P2-T08 delta and the Peso Comparação slice bring the applied count to TEN.
+        Assert.Equal(10, (await context.Database.GetAppliedMigrationsAsync()).Count());
 
         // The second application is a complete no-op: it must not throw and leaves nothing pending.
         await PersistenceTestDatabase.ApplyMigrationsAsync(context);
 
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
-        Assert.Equal(8, (await context.Database.GetAppliedMigrationsAsync()).Count());
+        Assert.Equal(10, (await context.Database.GetAppliedMigrationsAsync()).Count());
     }
 
     private static IReadOnlyList<string> Sorted(IReadOnlyList<string> values) =>

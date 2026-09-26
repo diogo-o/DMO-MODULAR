@@ -69,6 +69,13 @@ public static class PersistenceServiceCollectionExtensions
         // DMO.Web/Program.cs with the shared read composition.
         services.AddScoped<IPesoReviewRepository, PesoReviewRepository>();
 
+        // ---- Peso Comparação (optional child of the initial Peso): the Comparação repository -----
+        // Additive registrations only: the Comparação aggregate lives in its OWN three tables
+        // (header, compared-CM subjects, measurement rows); the initial Peso rows are never
+        // written by it, so a Peso with no Comparação behaves exactly as today. The application
+        // service is registered in DMO.Web/Program.cs.
+        services.AddScoped<IComparacaoRepository, ComparacaoRepository>();
+
         // ---- P2-T07 Boquilhas: the aggregate + movement ledger + lifecycle ----------------------
         // Additive registrations only (P2-T07 contract §8.1/§27): the Boquilhas repository, the
         // narrow read-only bq-context traversal seam and the Boquilhas delete-dependency probe

@@ -568,52 +568,26 @@ public sealed class ControloCreateService : IControloCreateService
     }
 
     /// <summary>
-    /// Computes every per-row result with the authoritative §5.3 formulas
-    /// (<c>Capacidade = Peso de água ÷ densidade da água para a temperatura introduzida</c>;
-    /// <c>Peso do vidro = (Capacidade + Volume Marisa/BQ − Volume Punção/PU) × Densidade do vidro</c>).
-    /// A computed per-row result that is not strictly positive is refused BEFORE any write with the
-    /// typed <c>RESULT_NON_POSITIVE</c> token (C2) — never a 500.
+    /// Computes every per-row result with the authoritative §5.3 formulas through the SINGLE
+    /// shared calculation path (<see cref="PesoRowCalculationRules"/> — the same helper the Peso
+    /// Comparação re-measurement path calls; no formula is duplicated). A computed per-row result
+    /// that is not strictly positive is refused BEFORE any write with the typed
+    /// <c>RESULT_NON_POSITIVE</c> token (C2) — never a 500.
     /// </summary>
-    private IReadOnlyList<PesoRowCalculation>? ComputeRows(
+    private static IReadOnlyList<PesoRowCalculation>? ComputeRows(
         IReadOnlyList<decimal> waterWeightsG,
         decimal waterDensity,
         decimal glassDensity,
         decimal? volumeMarisaBq,
         decimal? volumePuncaoPu,
-        out IReadOnlyList<string> errors)
-    {
-        errors = [];
-
-        // An invalid water-density/glass-density configuration can never fabricate a result
-        // (MES11): a non-positive density means the entered combination yields no strictly
-        // positive derived result — the typed RESULT_NON_POSITIVE refusal, nothing written.
-        if (waterDensity <= 0 || glassDensity <= 0)
-        {
-            errors = [ControloCreateValidationErrors.ResultNonPositive];
-            return null;
-        }
-
-        var rows = new List<PesoRowCalculation>(waterWeightsG.Count);
-
-        for (var index = 0; index < waterWeightsG.Count; index++)
-        {
-            var capacity = decimal.Round(waterWeightsG[index] / waterDensity, 4, MidpointRounding.AwayFromZero);
-            var glass = decimal.Round(
-                (capacity + (volumeMarisaBq ?? 0) - (volumePuncaoPu ?? 0)) * glassDensity,
-                4,
-                MidpointRounding.AwayFromZero);
-
-            if (capacity <= 0 || glass <= 0)
-            {
-                errors = [ControloCreateValidationErrors.ResultNonPositive];
-                return null;
-            }
-
-            rows.Add(new PesoRowCalculation(index + 1, waterWeightsG[index], capacity, glass));
-        }
-
-        return rows;
-    }
+        out IReadOnlyList<string> errors) =>
+        PesoRowCalculationRules.ComputeRows(
+            waterWeightsG,
+            waterDensity,
+            glassDensity,
+            volumeMarisaBq,
+            volumePuncaoPu,
+            out errors);
 
     /// <summary>
     /// The submit recompute-and-verify (contract §7.4 step 5): re-derives every per-row result from

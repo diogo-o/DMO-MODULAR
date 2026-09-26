@@ -48,27 +48,29 @@ public sealed class Migration005GlassDensitySettingsTests
         "20260923171223_ControloApproveDomain",
         "20260924051151_BoquilhasDomain",
         "20260924130151_BoquilhasPreJobonAssociation",
+        "20260924182527_EmailTemplateGroupRouting",
+        "20260925071139_ControloComparacaoDomain",
     ];
 
-    /// <summary>The complete public product-table register after all SEVEN migrations (disclosed P2-T06
-    /// extension: the one review-decision table joins the closed 20-table state; P2-T07 OWNER
-    /// CLARIFICATION: the THREE Boquilhas register tables join — the lifecycle tables of the
-    /// unreviewed 007 are gone; final product-table count 23).</summary>
+    /// <summary>The complete public product-table register after all TEN migrations (the closed
+    /// 23-table state joins the THREE Comparação tables — the P2-T08 delta alters
+    /// <c>email_templates</c> and adds no table; final product-table count 26).</summary>
     private static readonly string[] PublicProductTables =
     [
         "admin_accounts", "boquilha_movement_audit", "boquilha_movements", "boquilhas",
-        "bq_contexts", "cm_contexts", "email_list_recipients", "email_lists",
+        "bq_contexts", "cm_contexts", "comparacao_cm_subjects", "comparacao_measurement_rows",
+        "comparacoes", "email_list_recipients", "email_lists",
         "email_templates", "glass_density_settings", "job_ons", "machine_repairer_assignments",
         "mf_contexts", "pdf_directory_settings", "peso_measurement_rows", "pesos", "repairers",
         "template_modules", "templates", "tool_machines", "tools", "users", "peso_review_decisions",
     ];
 
     /// <summary>
-    /// GD-M1 — applying all seven migrations to a reset schema leaves exactly the seven contracted
-    /// migrations in <c>__EFMigrationsHistory</c> and exactly the 24 raw public tables; the
+    /// GD-M1 — applying all ten migrations to a reset schema leaves exactly the ten contracted
+    /// migrations in <c>__EFMigrationsHistory</c> and exactly the 27 raw public tables; the
     /// correction adds exactly ONE table to the closed 19-table state, P2-T06 adds exactly ONE
-    /// decision table and P2-T07 adds exactly THREE Boquilhas register tables (23 product +
-    /// history).
+    /// decision table, P2-T07 adds exactly THREE Boquilhas register tables and the Peso
+    /// Comparação slice adds exactly THREE comparison tables (26 product + history).
     /// </summary>
     [SkippableFact]
     public async Task GD_M1_ExactlyOneNewTableAndTheFifthMigrationAreApplied()
@@ -89,7 +91,7 @@ public sealed class Migration005GlassDensitySettingsTests
             "SELECT table_name FROM information_schema.tables " +
             "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"));
 
-        Assert.Equal(24, tables.Count); // 23 product tables + history
+        Assert.Equal(27, tables.Count); // 26 product tables + history
         Assert.Equal(Sorted([.. PublicProductTables, MigrationHistoryTable]), tables);
     }
 
@@ -255,7 +257,7 @@ public sealed class Migration005GlassDensitySettingsTests
         await PersistenceTestDatabase.ApplyMigrationsAsync(context);
 
         // Down migrates the correction away: the fifth migration is removed from history and the
-        // table disappears; the other twenty-two tables stay (23 product − 1 correction).
+        // table disappears; the other tables stay (27 raw − 1 correction = 26 raw).
         await context.Database.ExecuteSqlRawAsync(
             "DELETE FROM \"__EFMigrationsHistory\" WHERE \"MigrationId\" = '20260923122429_GlassDensitySettings'");
         await context.Database.ExecuteSqlRawAsync("DROP TABLE \"glass_density_settings\"");
@@ -264,7 +266,7 @@ public sealed class Migration005GlassDensitySettingsTests
             context,
             "SELECT table_name FROM information_schema.tables " +
             "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"));
-        Assert.Equal(23, tables.Count); // 22 product + history
+        Assert.Equal(26, tables.Count); // 25 product + history
         Assert.DoesNotContain(CorrectionTable, tables);
 
         // Re-apply: the correction migration runs again and restores the exact two-row state.
@@ -283,7 +285,7 @@ public sealed class Migration005GlassDensitySettingsTests
         // A further re-run applies nothing.
         await PersistenceTestDatabase.ApplyMigrationsAsync(context);
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
-        Assert.Equal(8, (await context.Database.GetAppliedMigrationsAsync()).Count());
+        Assert.Equal(10, (await context.Database.GetAppliedMigrationsAsync()).Count());
     }
 
     private static async Task ExecuteAsync(DmoDbContext context, string sql)

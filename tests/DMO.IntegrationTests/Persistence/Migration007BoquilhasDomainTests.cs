@@ -51,7 +51,8 @@ public sealed class Migration007BoquilhasDomainTests
         "boquilhas",
     ];
 
-    /// <summary>The eight migrations, in generation order.</summary>
+    /// <summary>The TEN migrations, in generation order (the P2-T08 delta adds the NINTH and the
+    /// Peso Comparação slice adds the TENTH).</summary>
     private static readonly string[] AllMigrationIds =
     [
         "20260922001736_AccountAndTemplateFoundation",
@@ -62,13 +63,15 @@ public sealed class Migration007BoquilhasDomainTests
         ControloApproveMigrationId,
         BoquilhasMigrationId,
         BoquilhasPreJobonMigrationId,
+        "20260924182527_EmailTemplateGroupRouting",
+        "20260925071139_ControloComparacaoDomain",
     ];
 
     /// <summary>
-    /// MG1 (AC-MG1, corrected) — applying all eight migrations to a reset schema leaves exactly the
-    /// eight contracted migrations in <c>__EFMigrationsHistory</c> and 24 raw tables (23 product
+    /// MG1 (AC-MG1, corrected) — applying all ten migrations to a reset schema leaves exactly the
+    /// ten contracted migrations in <c>__EFMigrationsHistory</c> and 27 raw tables (26 product
     /// tables: 20 closed + exactly THREE Boquilhas tables — migration 008 alters the register, it
-    /// adds no table — plus EF's history row — the final table count to report).
+    /// adds no table — plus the THREE Comparação tables — plus EF's history row).
     /// </summary>
     [SkippableFact]
     public async Task MG1_ExactlyThreeNewTablesAndTheSeventhMigrationAreApplied()
@@ -87,7 +90,7 @@ public sealed class Migration007BoquilhasDomainTests
             "SELECT table_name FROM information_schema.tables " +
             "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"));
 
-        Assert.Equal(24, tables.Count); // 20 closed product tables + exactly three Boquilhas tables + __EFMigrationsHistory
+        Assert.Equal(27, tables.Count); // 20 closed + THREE Boquilhas + THREE Comparação + __EFMigrationsHistory
         foreach (var table in ThreeTables)
         {
             Assert.Contains(table, tables);
@@ -353,7 +356,7 @@ public sealed class Migration007BoquilhasDomainTests
     /// <summary>
     /// MG3 (AC-MG3, corrected) — the REAL <c>Down</c> (EF migrator to the previous migration) removes
     /// ONLY the P2-T07 state — the 21-raw-table state (20 product tables + history) is restored;
-    /// re-applying is idempotent (24 raw).
+    /// re-applying is idempotent (27 raw, incl. the Comparação tables of this slice).
     /// </summary>
     [SkippableFact]
     public async Task MG3_DownRemovesOnlyP2T07StateAndReApplyIsIdempotent()
@@ -383,7 +386,7 @@ public sealed class Migration007BoquilhasDomainTests
         Assert.DoesNotContain(history, line => line == BoquilhasMigrationId);
         Assert.Contains(history, line => line == ControloApproveMigrationId);
 
-        // Re-apply forward and again — idempotent (23 product tables + history = 24 raw).
+        // Re-apply forward and again — idempotent (26 product tables + history = 27 raw).
         await PersistenceTestDatabase.ApplyMigrationsAsync(context);
         await PersistenceTestDatabase.ApplyMigrationsAsync(context);
 
@@ -391,7 +394,7 @@ public sealed class Migration007BoquilhasDomainTests
             context,
             "SELECT table_name FROM information_schema.tables " +
             "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'");
-        Assert.Equal(24, reapplied.Count);
+        Assert.Equal(27, reapplied.Count);
     }
 
     // ------------------------------------------------------------------ helpers
