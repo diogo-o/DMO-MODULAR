@@ -1,4 +1,4 @@
-using DMO.Application.ControloComparacao;
+using DMO.Application.Controlo.Comparacao;
 using DMO.Domain.ControloComparacao;
 
 namespace DMO.UnitTests.ControloComparacao;

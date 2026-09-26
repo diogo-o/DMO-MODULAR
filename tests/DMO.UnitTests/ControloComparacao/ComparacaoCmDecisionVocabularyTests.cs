@@ -1,4 +1,4 @@
-using DMO.Application.ControloApprove;
+using DMO.Application.Controlo.Approve;
 using DMO.Domain.ControloComparacao;
 
 namespace DMO.UnitTests.ControloComparacao;

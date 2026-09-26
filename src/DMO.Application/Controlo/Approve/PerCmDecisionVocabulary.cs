@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloApprove;
+namespace DMO.Application.Controlo.Approve;
 
 /// <summary>
 /// The closed per-CM decision vocabulary of the Comparação workflow (contract §17.1, Q-PERCM).

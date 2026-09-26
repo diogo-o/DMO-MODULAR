@@ -29,7 +29,8 @@ internal static class P2T05ProductionScan
     /// <summary>The new P2-T05 application sources (contract Appendix B; post-closure correction
     /// adds the glass-density settings repository contract).</summary>
     public static IReadOnlyList<string> ApplicationSourcePaths { get; } =
-        P2T04ProductionScan.FilesUnder("src/DMO.Application/ControloCreate", ".cs")
+        P2T04ProductionScan.FilesUnder("src/DMO.Application/Controlo/Pesos", ".cs")
+            .Concat(P2T04ProductionScan.FilesUnder("src/DMO.Application/Controlo/Settings", ".cs"))
             .Concat(
             [
                 "src/DMO.Application/Repositories/IPesoRepository.cs",
@@ -318,7 +319,8 @@ internal static class P2T05ProductionScan
     public static IReadOnlyList<string> OwnedPathPrefixes { get; } =
     [
         "src/DMO.Domain/Controlo/",
-        "src/DMO.Application/ControloCreate/",
+        "src/DMO.Application/Controlo/Pesos/",
+        "src/DMO.Application/Controlo/Settings/",
         "src/DMO.Application/Repositories/I",
         "src/DMO.Application/Persistence/Controlo",
         "src/DMO.Infrastructure/Persistence/Controlo/Peso",
@@ -330,6 +332,10 @@ internal static class P2T05ProductionScan
         "src/DMO.Infrastructure/Persistence/Controlo/GlassDensity",
         "src/DMO.Infrastructure/Persistence/Controlo/DmoPesoContextRead.cs",
         "src/DMO.Infrastructure/Persistence/Controlo/PesoJobOnDependencyProbe.cs",
+        // The Resumo read seam consumes the shared Controlo.Pesos namespace in its using, so it
+        // now carries the "peso" fragment in code; it is D5-owned and disclosed here with the
+        // other read seams (same convention as DmoPesoContextRead/DmoPesoOutputRead).
+        "src/DMO.Infrastructure/Persistence/Controlo/DmoProductionResumoRead.cs",
         "src/DMO.Infrastructure/Persistence/Controlo/Entities/Peso",
         "src/DMO.Infrastructure/Persistence/Controlo/Entities/PesoMeasurementRowEntity.cs",
         "src/DMO.Infrastructure/Persistence/Controlo/Entities/RepairerEntity.cs",
@@ -358,7 +364,7 @@ internal static class P2T05ProductionScan
         // surface consumes the same Peso identity/read model by contract, so its OWN paths are an
         // accepted extension of the P2-T05 owned surface (the P2-T06 paths are themselves pinned by
         // the P2-T06 boundary rows).
-        "src/DMO.Application/ControloApprove/",
+        "src/DMO.Application/Controlo/Approve/",
         "src/DMO.Application/Repositories/IPesoReview",
         "src/DMO.Application/Persistence/PesoReviewPersistenceException.cs",
         "src/DMO.Infrastructure/Persistence/Controlo/PesoReview",
@@ -405,7 +411,7 @@ internal static class P2T05ProductionScan
         // accepted extension of the P2-T05 owned surface (the Comparação surface pins its own
         // boundary/regression rows).
         "src/DMO.Domain/ControloComparacao/",
-        "src/DMO.Application/ControloComparacao/",
+        "src/DMO.Application/Controlo/Comparacao/",
         "src/DMO.Application/Repositories/IComparacao",
         "src/DMO.Application/Persistence/Comparacao",
         "src/DMO.Infrastructure/Persistence/Controlo/Comparacao",

@@ -1,6 +1,7 @@
+using DMO.Application.Controlo.Pesos;
 using DMO.Domain.ControloComparacao;
 
-namespace DMO.Application.ControloComparacao;
+namespace DMO.Application.Controlo.Comparacao;
 
 /// <summary>
 /// The exact machine-readable validation error codes of the Peso Comparação area (closed set).
@@ -111,20 +112,20 @@ public static class ControloComparacaoValidator
 
         if (command.RowWaterWeightsG.Count == 0)
         {
-            errors.Add(ControloCreate.ControloCreateValidationErrors.RowRequired);
+            errors.Add(ControloCreateValidationErrors.RowRequired);
         }
 
         foreach (var weight in command.RowWaterWeightsG)
         {
             if (weight <= 0)
             {
-                errors.Add(ControloCreate.ControloCreateValidationErrors.RowWeightInvalid);
+                errors.Add(ControloCreateValidationErrors.RowWeightInvalid);
             }
         }
 
         // The service derives dense 1-based positions from the row order; the position tokens stay
         // a closed-set reachability proof of the shared validation helper (accepted MES5 stance).
-        errors.AddRange(ControloCreate.ControloCreateValidator.ValidateRowPositions(
+        errors.AddRange(ControloCreateValidator.ValidateRowPositions(
             Enumerable.Range(1, command.RowWaterWeightsG.Count).ToArray()));
 
         return errors;

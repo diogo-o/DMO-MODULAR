@@ -1,7 +1,7 @@
 using System.Reflection;
 using DMO.Application.Access;
-using DMO.Application.ControloApprove;
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Approve;
+using DMO.Application.Controlo.Pesos;
 using DMO.Application.Repositories;
 using DMO.Domain.Controlo;
 using DMO.Infrastructure.Persistence.Entities;
@@ -400,7 +400,7 @@ public sealed class P2T06RegressionTests
 
         // The per-CM vocabulary lives ONLY in the documented constants type (Q-PERCM: vocabulary
         // fixed, carrier deferred) â€” never in tables/routes/types/prose elsewhere.
-        var vocabularySource = P2T04ProductionScan.Read("src/DMO.Application/ControloApprove/PerCmDecisionVocabulary.cs");
+        var vocabularySource = P2T04ProductionScan.Read("src/DMO.Application/Controlo/Approve/PerCmDecisionVocabulary.cs");
         Assert.Contains("\"Manter\"", vocabularySource, StringComparison.Ordinal);
         Assert.Contains("\"Colocar de parte\"", vocabularySource, StringComparison.Ordinal);
         Assert.Contains("const string Manter", vocabularySource, StringComparison.Ordinal);

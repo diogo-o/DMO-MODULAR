@@ -5,7 +5,7 @@ using DMO.Application.Tools;
 using DMO.Domain.Controlo;
 using DMO.Domain.Tools;
 
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Pesos;
 
 /// <summary>
 /// The Peso create/measurement/submission service: validation, anchor resolution, the authoritative

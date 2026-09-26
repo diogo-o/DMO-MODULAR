@@ -1,5 +1,5 @@
 using DMO.Application.Access;
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Settings;
 using DMO.Domain.Controlo;
 using DMO.Web.Authorization;
 

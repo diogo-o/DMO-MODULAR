@@ -1,7 +1,7 @@
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
 using DMO.Domain.Controlo;
 
-namespace DMO.Application.ControloApprove;
+namespace DMO.Application.Controlo.Approve;
 
 /// <summary>
 /// The review-sheet read model of P2-T06 (contract §15.3/§16): approval-only presentation facts

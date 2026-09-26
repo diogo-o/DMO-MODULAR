@@ -1,6 +1,6 @@
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
 
-namespace DMO.Application.ControloComparacao;
+namespace DMO.Application.Controlo.Comparacao;
 
 /// <summary>
 /// The command carriers of the Peso Comparação core and the closed Comparação result set.

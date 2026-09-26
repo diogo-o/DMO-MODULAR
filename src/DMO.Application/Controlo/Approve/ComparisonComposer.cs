@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloApprove;
+namespace DMO.Application.Controlo.Approve;
 
 /// <summary>
 /// The supplied review-identification facts of ONE side of the Comparação relation (P2-T06

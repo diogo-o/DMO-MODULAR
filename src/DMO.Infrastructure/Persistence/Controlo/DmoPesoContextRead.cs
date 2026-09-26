@@ -1,4 +1,4 @@
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
 using DMO.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 

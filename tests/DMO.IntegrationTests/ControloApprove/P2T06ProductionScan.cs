@@ -27,7 +27,7 @@ internal static class P2T06ProductionScan
 
     /// <summary>The new P2-T06 application sources (contract Appendix B).</summary>
     public static IReadOnlyList<string> ApplicationSourcePaths { get; } =
-        P2T04ProductionScan.FilesUnder("src/DMO.Application/ControloApprove", ".cs")
+        P2T04ProductionScan.FilesUnder("src/DMO.Application/Controlo/Approve", ".cs")
             .Concat(
             [
                 "src/DMO.Application/Repositories/IPesoReviewRepository.cs",
@@ -103,7 +103,7 @@ internal static class P2T06ProductionScan
     /// fabricated carrier table/column/route/type) is unchanged.
     /// </summary>
     public static string ComparisonCompositionSeamPath { get; } =
-        "src/DMO.Application/ControloApprove/ComparisonComposer.cs";
+        "src/DMO.Application/Controlo/Approve/ComparisonComposer.cs";
 
     // ================= boundary vocabularies ===============================================
 

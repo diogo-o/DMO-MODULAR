@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using DMO.Application.Access;
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
 using DMO.IntegrationTests.Navigation;
 using DMO.Web.Authorization;
 using Microsoft.AspNetCore.Authorization;

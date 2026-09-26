@@ -2,7 +2,7 @@ using DMO.Application.Persistence;
 using DMO.Application.Repositories;
 using DMO.Domain.Controlo;
 
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Settings;
 
 /// <summary>
 /// The <c>Controlo_Create → Definições</c> settings service: the operational configuration

@@ -1,6 +1,6 @@
 using System.Text.Encodings.Web;
 using DMO.Application.Access;
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
 using DMO.Application.Repositories;
 using DMO.Application.Session;
 using DMO.IntegrationTests.ControloCreate;

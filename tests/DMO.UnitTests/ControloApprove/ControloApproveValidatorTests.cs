@@ -1,4 +1,4 @@
-using DMO.Application.ControloApprove;
+using DMO.Application.Controlo.Approve;
 using DMO.Domain.Controlo;
 
 namespace DMO.UnitTests.ControloApprove;
@@ -50,7 +50,7 @@ public sealed class ControloApproveValidatorTests
 
         // RD1: the review sheet embeds the EXACT shared P2-T05 type (type identity assertion).
         var pesoProperty = typeof(ReviewSheetReadModel).GetProperty("Peso")!;
-        Assert.Equal(typeof(DMO.Application.ControloCreate.PesoSheetReadModel), pesoProperty.PropertyType);
+        Assert.Equal(typeof(DMO.Application.Controlo.Pesos.PesoSheetReadModel), pesoProperty.PropertyType);
     }
 
     // ---- J2/O3 (AC-J2/AC-O3): reason requirements -------------------------------------------

@@ -1,6 +1,6 @@
 using DMO.Domain.Controlo;
 
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Settings;
 
 /// <summary>
 /// The command carriers and closed result set of <c>Controlo_Create → Definições</c>.

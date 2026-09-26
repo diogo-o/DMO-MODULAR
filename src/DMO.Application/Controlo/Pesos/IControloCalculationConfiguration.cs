@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Pesos;
 
 /// <summary>
 /// The backend calculation configuration consumed by the Peso formulas (Q-CALC, as clarified by

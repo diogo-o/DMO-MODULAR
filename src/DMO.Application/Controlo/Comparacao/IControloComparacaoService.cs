@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloComparacao;
+namespace DMO.Application.Controlo.Comparacao;
 
 /// <summary>
 /// The Peso Comparação application service contract: the optional comparison child of the

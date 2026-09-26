@@ -1,6 +1,6 @@
 using DMO.Application.JobOn;
 
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Pesos;
 
 /// <summary>
 /// The command carriers of the Peso create/measurement core and the closed Peso result set.

@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloApprove;
+namespace DMO.Application.Controlo.Approve;
 
 /// <summary>
 /// The P2-T06 Controlo Approve service contract (contract §9.1, exact): the review/decision core

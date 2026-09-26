@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Pesos;
 
 /// <summary>
 /// The exact machine-readable validation error codes of the Peso area (closed set, §26.2).

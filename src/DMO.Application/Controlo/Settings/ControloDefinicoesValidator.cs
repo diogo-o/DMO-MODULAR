@@ -1,7 +1,7 @@
 using DMO.Application.Tools;
 using DMO.Domain.Controlo;
 
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Settings;
 
 /// <summary>
 /// The exact machine-readable validation error codes of <c>Controlo_Create → Definições</c>

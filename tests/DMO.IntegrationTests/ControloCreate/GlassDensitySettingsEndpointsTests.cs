@@ -1,7 +1,8 @@
 using System.Net;
 using System.Text.Json;
 using DMO.Application.Access;
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
+using DMO.Application.Controlo.Settings;
 using DMO.Domain.Tools;
 using DMO.IntegrationTests.JobOn;
 using DMO.IntegrationTests.Navigation;

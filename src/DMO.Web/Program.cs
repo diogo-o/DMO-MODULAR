@@ -1,9 +1,10 @@
 using DMO.Application.Accounts;
 using DMO.Application.Authentication;
 using DMO.Application.Boquilhas;
-using DMO.Application.ControloApprove;
-using DMO.Application.ControloComparacao;
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Approve;
+using DMO.Application.Controlo.Comparacao;
+using DMO.Application.Controlo.Pesos;
+using DMO.Application.Controlo.Settings;
 using DMO.Application.Documents;
 using DMO.Application.JobOn;
 using DMO.Application.Migrations;

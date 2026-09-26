@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Pesos;
 
 /// <summary>
 /// One CM-context projection of the P2-T05 anchor traversal: the accepted P2-T04 <c>cm_id</c> with

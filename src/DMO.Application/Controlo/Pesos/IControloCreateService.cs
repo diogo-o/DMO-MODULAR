@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Pesos;
 
 /// <summary>
 /// The single Peso create/measurement/submission service contract.

@@ -1,5 +1,5 @@
 using System.Reflection;
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
 
 namespace DMO.UnitTests.ControloCreate;
 

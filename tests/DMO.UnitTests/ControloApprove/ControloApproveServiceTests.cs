@@ -1,5 +1,5 @@
-using DMO.Application.ControloApprove;
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Approve;
+using DMO.Application.Controlo.Pesos;
 using DMO.Domain.Controlo;
 using DMO.UnitTests.ControloApprove.Fakes;
 using PesoId = DMO.Domain.Controlo.PesoId;

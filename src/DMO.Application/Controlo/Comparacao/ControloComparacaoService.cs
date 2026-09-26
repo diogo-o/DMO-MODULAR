@@ -1,10 +1,10 @@
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
 using DMO.Application.Persistence;
 using DMO.Application.Repositories;
 using DMO.Domain.Controlo;
 using DMO.Domain.ControloComparacao;
 
-namespace DMO.Application.ControloComparacao;
+namespace DMO.Application.Controlo.Comparacao;
 
 /// <summary>
 /// The Peso Comparação service: the optional comparison child of the initial Peso — start a new
@@ -88,7 +88,7 @@ public sealed class ControloComparacaoService : IControloComparacaoService
         }
 
         var now = DateTimeOffset.UtcNow;
-        var comparacao = new Comparacao(
+        var comparacao = new global::DMO.Domain.ControloComparacao.Comparacao(
             ComparacaoId.New(),
             PesoId.From(command.PesoId),
             command.CreatedByUserId,
@@ -483,7 +483,7 @@ public sealed class ControloComparacaoService : IControloComparacaoService
 
     /// <summary>Loads the comparison event and its subject by the natural <c>comparacao_id + cm_id</c>
     /// identity and answers the shared preconditions (comparison exists, not confirmed).</summary>
-    private async Task<(Comparacao? Comparacao, ComparacaoCmSubject? Subject, ComparacaoResult? Refusal)> LoadSubjectAsync(
+    private async Task<(global::DMO.Domain.ControloComparacao.Comparacao? Comparacao, ComparacaoCmSubject? Subject, ComparacaoResult? Refusal)> LoadSubjectAsync(
         Guid comparacaoId,
         Guid cmId,
         CancellationToken cancellationToken)
@@ -510,7 +510,7 @@ public sealed class ControloComparacaoService : IControloComparacaoService
         return (comparacao, subject, null);
     }
 
-    private static ComparacaoCmSubject? FindSubject(Comparacao comparacao, Guid cmId)
+    private static ComparacaoCmSubject? FindSubject(global::DMO.Domain.ControloComparacao.Comparacao comparacao, Guid cmId)
     {
         foreach (var subject in comparacao.Subjects)
         {
@@ -541,7 +541,7 @@ public sealed class ControloComparacaoService : IControloComparacaoService
     // ---------------------------------------------------------------------------------------------
 
     private async Task<ComparacaoReadModel> BuildReadModelAsync(
-        Comparacao comparacao,
+        global::DMO.Domain.ControloComparacao.Comparacao comparacao,
         CancellationToken cancellationToken)
     {
         var subjects = new List<ComparacaoCmSubjectReadModel>(comparacao.Subjects.Count);

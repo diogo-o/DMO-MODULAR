@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Settings;
 
 /// <summary>
 /// The server-side PDF-directory accessibility probe (Q-PDF ruling).

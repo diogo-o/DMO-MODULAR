@@ -1,6 +1,6 @@
 using DMO.Domain.Tools;
 
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Pesos;
 
 /// <summary>
 /// The production summary (Resumo da produção) read model: the Controlo entry projection of ONE

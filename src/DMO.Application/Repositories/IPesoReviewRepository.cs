@@ -1,4 +1,4 @@
-using DMO.Application.ControloApprove;
+using DMO.Application.Controlo.Approve;
 using DMO.Domain.Controlo;
 
 namespace DMO.Application.Repositories;

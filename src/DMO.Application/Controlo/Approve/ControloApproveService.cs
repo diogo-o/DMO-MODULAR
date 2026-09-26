@@ -1,10 +1,10 @@
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
 using DMO.Application.Persistence;
 using DMO.Application.Repositories;
 using DMO.Application.Session;
 using DMO.Domain.Controlo;
 
-namespace DMO.Application.ControloApprove;
+namespace DMO.Application.Controlo.Approve;
 
 /// <summary>
 /// The P2-T06 review/decision service: approve/reject/reopen on the SAME <c>peso_id</c> with

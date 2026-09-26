@@ -1,4 +1,4 @@
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
 using DMO.Application.Tools;
 using DMO.Domain.Controlo;
 

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
+using DMO.Application.Controlo.Settings;
 
 namespace DMO.IntegrationTests.ControloCreate;
 

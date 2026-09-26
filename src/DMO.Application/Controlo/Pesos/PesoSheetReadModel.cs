@@ -1,6 +1,6 @@
 using DMO.Application.JobOn;
 
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Pesos;
 
 /// <summary>
 /// The published read-only Peso sheet carrier (C → D seam, exact shape of P2-T05 contract §26.3).

@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloCreate;
+namespace DMO.Application.Controlo.Settings;
 
 /// <summary>
 /// The single <c>Controlo_Create → Definições</c> settings service contract.

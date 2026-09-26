@@ -1,5 +1,5 @@
 using DMO.Application.Boquilhas;
-using ControloDefinicoesErrors = DMO.Application.ControloCreate.ControloDefinicoesValidationErrors;
+using ControloDefinicoesErrors = DMO.Application.Controlo.Settings.ControloDefinicoesValidationErrors;
 
 namespace DMO.Web.Endpoints;
 

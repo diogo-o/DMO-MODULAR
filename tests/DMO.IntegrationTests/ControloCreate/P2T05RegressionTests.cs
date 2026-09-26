@@ -1,7 +1,7 @@
 using System.Net;
 using System.Reflection;
 using DMO.Application.Access;
-using DMO.Application.ControloCreate;
+using DMO.Application.Controlo.Pesos;
 using DMO.Domain.Controlo;
 using DMO.Infrastructure.Persistence.Entities;
 using DMO.IntegrationTests.JobOn;

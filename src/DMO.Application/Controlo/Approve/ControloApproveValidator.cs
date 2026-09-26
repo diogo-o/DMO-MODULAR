@@ -1,4 +1,4 @@
-namespace DMO.Application.ControloApprove;
+namespace DMO.Application.Controlo.Approve;
 
 /// <summary>
 /// The P2-T06 validator: pure static validation of the decision commands and the list queries,

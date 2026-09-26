@@ -1,6 +1,6 @@
 using DMO.Domain.Controlo;
 
-namespace DMO.Application.ControloApprove;
+namespace DMO.Application.Controlo.Approve;
 
 // ---------------------------------------------------------------------------------------------
 // Queries (§15.1/§15.2 — exact)
