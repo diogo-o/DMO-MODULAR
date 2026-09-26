@@ -1,11 +1,16 @@
 # DMO Modular — Architecture
 
-How the repository is physically organised, and where each future boundary will live.
+How the repository is physically organised, and where each boundary lives.
 
-This file describes the **code structure**. Product/functional authority is
-`diogo-o/dmo-master`; this file does not restate domain behaviour.
+This file describes the **code structure** and the binding architecture rules. Product/functional
+authority is `diogo-o/dmo-master`; this file does not restate domain behaviour.
 
-## Current structure (P1-T01)
+> **Current structure authority.** The full post-repartition physical layout (domain grouping,
+> seams, frozen areas) is `docs/CURRENT_REPOSITORY_STRUCTURE.md`. The rules below (reference
+> direction, "no project split pre-authorised", terminology, runtime-owns-runtime) remain
+> binding; the P1-era layout descriptions in the earlier revisions of this file are historical.
+
+## Current structure (post Stages 1–4)
 
 ```text
 DMO.slnx
@@ -14,48 +19,65 @@ Directory.Build.props          shared build settings
 Directory.Packages.props       central package versions
 
 src/
-  DMO.Web/                     application host
-  DMO.Application/             application contracts/orchestration
-  DMO.Domain/                  domain primitives (currently empty by design)
-  DMO.Infrastructure/          shared infrastructure plumbing
+  DMO.Web/                     host: composition root, HTTP, auth, admin, pages, endpoints
+  DMO.Application/             orchestration + repository/persistence contracts
+  DMO.Domain/                  domain primitives (value objects, entities, identities)
+  DMO.Infrastructure/          persistence (single context, centralized migrations, repositories)
 
 tests/
-  DMO.UnitTests/               unit test project
-  DMO.IntegrationTests/        integration test project
+  DMO.UnitTests/               unit tests (domain-mirrored folders)
+  DMO.IntegrationTests/        host-level + persistence/migration tests (domain-mirrored)
 
-docs/                          design and structure documentation
+docs/  plans/  reports/        documentation, accepted contracts, evidence
 ```
+
+Domain boundaries are expressed as namespaces/folders **inside** these six projects. No new
+project or assembly was introduced by the repartition. See
+`docs/CURRENT_REPOSITORY_STRUCTURE.md` for the full per-project breakdown.
 
 ## Project responsibilities
 
-### `src/DMO.Web` — host only
+### `src/DMO.Web` — host and runtime only
 
-Startup/composition root, HTTP pipeline, configuration binding, dependency registration and
-the minimal technical health/startup surface.
+Composition root, HTTP pipeline, configuration binding, dependency registration, the technical
+health surface, the authentication/account boundary, ADMIN-only administration surfaces, the
+shared frontend shell, navigation projection and the domain-grouped endpoint subfolders
+(`Endpoints/{Core,Access,Administration,ToolJobOn,Controlo,Boquilhas,Documents}`).
 
-Owns **no** industrial business rule. Session/authentication wiring, the Module Registry and
-navigation composition are *runtime* concerns that will be added here in later Phase 1
-slices — none is pre-built in P1-T01.
+Owns **no** industrial business rule. Session/authentication wiring, the Module Registry,
+access resolution and navigation composition are runtime concerns and live here (D1/D2/D3).
 
-### `src/DMO.Application` — application contracts
+### `src/DMO.Application` — orchestration + contracts
 
-Contracts the runtime needs, kept free of infrastructure detail. P1-T01 materialises only
-the migration-runner boundary (`Migrations/IMigrationRunner.cs`), because the host needs a
-migration entry point without knowing how migrations are stored or executed.
+Orchestration services and repository/persistence contracts, kept free of infrastructure detail.
+Domain-grouped: `Access/` `Accounts/` `Authentication/` `Session/` (identity/access), `Tools/`
+`JobOn/` (Tool & Job On), `Controlo/{Pesos,Settings,Approve,Comparacao}` (Controlo),
+`Boquilhas/`, `Documents/`, `Templates/` `TemplateAdministration/` `UserAdministration/`
+(administration), `Migrations/IMigrationRunner.cs` (migration-runner boundary) and
+`Persistence/` (shared persistence exception taxonomy).
 
-Users, Templates, account resolution and authentication workflows arrive in later slices.
+`Repositories/` stays **flat** — repository contracts are cross-domain and are not split per
+folder (see `docs/CURRENT_REPOSITORY_STRUCTURE.md` §Shared seams).
 
 ### `src/DMO.Domain` — domain primitives
 
-Intentionally almost empty. P1-T01 forbids pre-modelling USER, ADMIN, Template, Module,
-Tool, Job On, Controlo or any industrial entity merely to prepare for later tasks.
+Value objects, entities and identities for the implemented domains:
+`Tools/` (`Tool`, `ToolId`, `ToolType`), `JobOn/` (`JobOn`, `JobOnId`),
+`Controlo/` (Peso + Definições + Approve primitives), `ControloComparacao/` (`Comparacao`, `ComparacaoId`,
+`ComparacaoCmSubject`, `ComparacaoCmDecisionKind`, `ComparacaoMeasurementRow`), `Boquilhas/`.
 
-Types are added here only when a concrete task genuinely requires them.
+Types are added here only when a concrete task genuinely requires them. The comparacao domain
+lives in `DMO.Domain.ControloComparacao` (a sibling of `DMO.Domain.Controlo`, not a child
+`Controlo/Comparacao`), matching its production namespace.
 
-### `src/DMO.Infrastructure` — shared plumbing
+### `src/DMO.Infrastructure` — persistence implementation
 
-PostgreSQL connection/configuration, the single persistence context and the migration
-mechanism. Contains no Phase 1 domain schema and no business rule.
+PostgreSQL connection/configuration, the single persistence context and the centralized
+migration mechanism, grouped by domain ownership:
+`Persistence/{Core,Access,ToolJobOn,Controlo,Boquilhas}` plus shared `Database/`,
+`Configuration/`, `Migrations/`. The shared concurrency-conflict mapping
+(`Persistence/Core/ConcurrencyConflictExceptionMapping.cs`) adapts EF concurrency failures to the
+shared exception taxonomy in `DMO.Application/Persistence/`.
 
 ## P1-T02 — authentication + account boundary
 

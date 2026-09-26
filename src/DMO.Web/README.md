@@ -12,8 +12,13 @@ It owns no industrial business rule.
 | Concern | File |
 | --- | --- |
 | Composition root | `Program.cs` |
-| Technical endpoints | `Endpoints/TechnicalEndpoints.cs` |
-| Authentication + current-account endpoints | `Endpoints/AuthEndpoints.cs` |
+| Technical endpoints | `Endpoints/Core/TechnicalEndpoints.cs` |
+| Authentication + current-account endpoints | `Endpoints/Access/AuthEndpoints.cs` |
+| ADMIN-only Template/USER administration endpoints | `Endpoints/Administration/{TemplateAdministrationEndpoints,UserAdministrationEndpoints}.cs` |
+| Job On + contextual Ferramentas endpoints | `Endpoints/ToolJobOn/{JobOnEndpoints,FerramentasEndpoints}.cs` |
+| Controlo endpoints | `Endpoints/Controlo/{ControloCreateEndpoints,ControloDefinicoesEndpoints,ControloApproveEndpoints}.cs` |
+| Boquilhas endpoints | `Endpoints/Boquilhas/{BoquilhasEndpoints,BoquilhasDefinicoesEndpoints}.cs` |
+| Peso PDF / documents endpoints | `Endpoints/Documents/DocumentsEndpoints.cs` |
 | Technical startup commands (migrate / bootstrap-admin / run) | `Startup/StartupCommands.cs` |
 | Supabase Auth configuration (DEV/TEST) | `Auth/SupabaseOptions.cs`, `Auth/SupabaseAdminOptions.cs` |
 | Production authentication boundary | `Auth/SupabaseAuthenticationService.cs` |
@@ -118,6 +123,8 @@ dotnet run --project src/DMO.Web -- bootstrap-admin         # deployment-only si
 ## Cross-cutting boundaries
 
 Run as a host process only. Module Registry, navigation composition, Template/Module access
-resolution, the shared shell, the ADMIN-only administration surfaces and the P2-T01 shared
-component layer are present. Operational industrial Modules remain unimplemented and
-unregistered.
+resolution, the shared shell, the ADMIN-only administration surfaces, the P2-T01 shared
+component layer, and the domain endpoint groups (Core/Access/Administration/ToolJobOn/Controlo/
+Boquilhas/Documents) are present. Operational Modules are implemented but are **not** registered
+"available" yet — `ModuleRegistrations.CurrentBuildAvailable` stays `[]` until P2-T10 registers
+their real surfaces and routes.

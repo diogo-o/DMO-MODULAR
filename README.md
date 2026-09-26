@@ -12,33 +12,32 @@ This repository starts intentionally small. The current priority is to deliver t
 
 ## Current status
 
-The application/runtime skeleton now exists (P1-T01): a real .NET solution with the four
-`src/` projects, two `tests/` projects, configuration binding, PostgreSQL database
-infrastructure and a migration-runner boundary.
+The application is an implemented modular monolith (a real ASP.NET Core host, PostgreSQL via a
+single EF Core context, Supabase Auth, Razor Pages + minimal APIs). An early construction
+skeleton (P1-T01) was followed by the delivered workstream phases. The current physical layout
+— including the domain-grouped `Controlo/{Pesos,Settings,Approve,Comparacao}` split, the
+`Persistence/{Core,Access,ToolJobOn,Controlo,Boquilhas}` grouping, and the domain-mirrored test
+folders — is described in **`docs/CURRENT_REPOSITORY_STRUCTURE.md`** (authoritative current
+structure). Architecture rules live in `docs/ARCHITECTURE.md`.
 
-**No business functionality is implemented yet.** There is no authentication, no USER/ADMIN
-model, no Template, no Module Registry behaviour, no permissions and no operational or
-industrial schema. Phase 1 business slices follow P1-T01.
+Delivered operational modules (workstream phases P2-T04…P2-T07 + P2-T08 Peso-PDF slices):
+
+- **Admin** — users, access templates, module access, administration surfaces (D2).
+- **Tools + Job On** — canonical Tool identity, Job On occurrence contexts, contextual
+  Ferramentas (D4).
+- **Boquilhas** — operational module with persistent records (D6).
+- **Controlo** — Peso Criar, Peso Aprovar, Definições, Comparação service, and Peso PDF
+  output (D5).
+
+Deferred (identities only, no code/routes): **Armazém**, **Pegamentos**, **Reparação Interna**,
+**Reparação Programada View/Create**, **Tampões**, **História**.
 
 ## Construction strategy
 
-Each phase completes one usable module.
-
-1. **Admin** — users, access templates, module access and the minimum application shell.
-2. **Boquilhas** — complete operational module with persistent records.
-3. **Controlo** — Peso Criar, Peso Aprovar, Pegamentos, Resumo, PDF generation and document directories.
-
-At that point there is a complete usable version for the immediate work need.
-
-The application can then expand naturally:
-
-4. **Armazém**
-5. **Job On**
-6. Remaining operational modules
-
-Later phases add capabilities and relationships **around** the identities already created,
-rather than rebuilding the backend. See `docs/CREATION_AND_ASSOCIATION_LOGIC.md` for the
-settled creation/association logic.
+Each phase completes one usable module. Later phases add capabilities and relationships
+**around** the identities already created, rather than rebuilding the backend. See
+`docs/CREATION_AND_ASSOCIATION_LOGIC.md` for the settled creation/association logic, and
+`docs/CURRENT_REPOSITORY_STRUCTURE.md` for where each module actually lives.
 
 ## Core architectural idea
 
@@ -68,8 +67,8 @@ The runtime should remain deliberately small. It does not need to understand eve
 
 Business meaning belongs to modules and to persisted backend relationships.
 
-For the physical project layout and the mapping from the old documentation folders onto the
-real projects, see `docs/ARCHITECTURE.md` and `docs/SKELETON_RATIONALIZATION_P1-T01.md`.
+For the physical project layout, see `docs/CURRENT_REPOSITORY_STRUCTURE.md` (current
+structure) and `docs/ARCHITECTURE.md` (architecture rules).
 
 ## Shared backend identities
 
@@ -255,11 +254,12 @@ When adapting it:
 
 ## Current status
 
-The construction skeleton and architectural objective are defined, and the application/
-runtime skeleton is implemented (P1-T01): solution, project boundaries, host, configuration,
-PostgreSQL infrastructure and the migration-runner boundary.
+The application is a delivered modular monolith (workstream phases P2-T01…P2-T08, repartitioned
+through Stages 1–4). The single runtime, the four `src/` projects, the two `tests/` projects,
+the single `DmoDbContext`, and the centralized 10-migration stream are in place. See
+`docs/CURRENT_REPOSITORY_STRUCTURE.md` for the authoritative physical layout.
 
-Phase 1 continues with the Admin / Users / Templates work (P1-T02 onward), then Boquilhas,
-then Controlo.
+Remaining open work (not implemented): P2-T10 module-availability/route registration.
+Deferred modules (Armazém, Pegamentos, Reparação, Tampões, História) remain identities only.
 
 The detailed domain contracts from `dmo-master` should be brought in deliberately, module by module, rather than copied wholesale into the runtime.
