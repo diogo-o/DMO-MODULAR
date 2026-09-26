@@ -211,21 +211,21 @@ internal static class P2T04ProductionScan
     /// <summary>The new P2-T04 persistence sources (contract Appendix B.3).</summary>
     public static IReadOnlyList<string> PersistenceSourcePaths { get; } =
     [
-        "src/DMO.Infrastructure/Persistence/ToolRepository.cs",
-        "src/DMO.Infrastructure/Persistence/JobOnRepository.cs",
-        "src/DMO.Infrastructure/Persistence/JobOnLineageDependencyProbe.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/ToolEntity.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/ToolMachineEntity.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/JobOnEntity.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/CmContextEntity.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/MfContextEntity.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/BqContextEntity.cs",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/ToolEntityConfiguration.cs",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/ToolMachineEntityConfiguration.cs",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/JobOnEntityConfiguration.cs",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/CmContextEntityConfiguration.cs",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/MfContextEntityConfiguration.cs",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/BqContextEntityConfiguration.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/ToolRepository.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/JobOnRepository.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/JobOnLineageDependencyProbe.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/Entities/ToolEntity.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/Entities/ToolMachineEntity.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/Entities/JobOnEntity.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/Entities/CmContextEntity.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/Entities/MfContextEntity.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/Entities/BqContextEntity.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/EntityConfigurations/ToolEntityConfiguration.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/EntityConfigurations/ToolMachineEntityConfiguration.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/EntityConfigurations/JobOnEntityConfiguration.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/EntityConfigurations/CmContextEntityConfiguration.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/EntityConfigurations/MfContextEntityConfiguration.cs",
+        "src/DMO.Infrastructure/Persistence/ToolJobOn/EntityConfigurations/BqContextEntityConfiguration.cs",
     ];
 
     /// <summary>The single P2-T04 migration and its EF designer (contract §16.1).</summary>
@@ -458,13 +458,13 @@ internal static class P2T04ProductionScan
     public static IReadOnlyList<string> DocumentedAdditiveSourcePaths { get; } =
     [
         "src/DMO.Web/Program.cs",
-        "src/DMO.Infrastructure/Persistence/DmoDbContext.cs",
+        "src/DMO.Infrastructure/Persistence/Core/DmoDbContext.cs",
         "src/DMO.Infrastructure/Persistence/PersistenceServiceCollectionExtensions.cs",
         "src/DMO.Infrastructure/Migrations/DmoDbContextModelSnapshot.cs",
     ];
 
     /// <summary>The protected foundation file that must stay free of P2-T04 vocabulary.</summary>
-    public const string ProtectedDbContextPath = "src/DMO.Infrastructure/Persistence/DmoDbContext.cs";
+    public const string ProtectedDbContextPath = "src/DMO.Infrastructure/Persistence/Core/DmoDbContext.cs";
 
     /// <summary>Every <c>src</c> file that mentions the P2-T04 vocabulary outside the allow-list.</summary>
     public static IReadOnlyList<string> VocabularyMentionsOutsideOwnedPaths()

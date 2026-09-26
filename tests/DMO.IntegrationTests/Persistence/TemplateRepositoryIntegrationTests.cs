@@ -1,6 +1,7 @@
 using DMO.Application.Persistence;
 using DMO.Application.Templates;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Access;
 using Microsoft.EntityFrameworkCore;
 
 namespace DMO.IntegrationTests.Persistence;

@@ -113,7 +113,7 @@ public sealed class GlassDensityCorrectionRegressionTests
     {
         // The Tool domain/entity never expose a density fact.
         var toolFicha = P2T04ProductionScan.Read("src/DMO.Application/Tools/ToolModels.cs");
-        var toolEntity = P2T04ProductionScan.Read("src/DMO.Infrastructure/Persistence/Entities/ToolEntity.cs");
+        var toolEntity = P2T04ProductionScan.Read("src/DMO.Infrastructure/Persistence/ToolJobOn/Entities/ToolEntity.cs");
 
         Assert.DoesNotContain("Density", toolFicha, StringComparison.Ordinal);
         Assert.DoesNotContain("Density", toolEntity, StringComparison.Ordinal);
@@ -127,7 +127,7 @@ public sealed class GlassDensityCorrectionRegressionTests
         // ONLY — no Tool id, no cm id, no per-reference dimension.
         var domainSetting = P2T04ProductionScan.Read("src/DMO.Domain/Controlo/GlassDensitySetting.cs");
         var entitySetting = P2T04ProductionScan.Read(
-            "src/DMO.Infrastructure/Persistence/Entities/GlassDensitySettingEntity.cs");
+            "src/DMO.Infrastructure/Persistence/Controlo/Entities/GlassDensitySettingEntity.cs");
 
         foreach (var source in new[] { domainSetting, entitySetting })
         {

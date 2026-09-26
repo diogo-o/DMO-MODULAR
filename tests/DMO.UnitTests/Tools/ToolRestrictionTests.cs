@@ -139,8 +139,16 @@ public sealed class ToolRestrictionTests
     [Fact]
     public void TOL17_NoSecondToolRegistryEntityTableDbSetOrCacheExists()
     {
-        var entities = SourcesUnder("src/DMO.Infrastructure/Persistence/Entities");
-        var configurations = SourcesUnder("src/DMO.Infrastructure/Persistence/EntityConfigurations");
+        var entities = SourcesUnder("src/DMO.Infrastructure/Persistence/Access/Entities")
+            .Concat(SourcesUnder("src/DMO.Infrastructure/Persistence/ToolJobOn/Entities"))
+            .Concat(SourcesUnder("src/DMO.Infrastructure/Persistence/Controlo/Entities"))
+            .Concat(SourcesUnder("src/DMO.Infrastructure/Persistence/Boquilhas/Entities"))
+            .ToList();
+        var configurations = SourcesUnder("src/DMO.Infrastructure/Persistence/Access/EntityConfigurations")
+            .Concat(SourcesUnder("src/DMO.Infrastructure/Persistence/ToolJobOn/EntityConfigurations"))
+            .Concat(SourcesUnder("src/DMO.Infrastructure/Persistence/Controlo/EntityConfigurations"))
+            .Concat(SourcesUnder("src/DMO.Infrastructure/Persistence/Boquilhas/EntityConfigurations"))
+            .ToList();
         var infrastructure = SourcesUnder("src/DMO.Infrastructure");
         var application = SourcesUnder("src/DMO.Application");
         var allSources = SourcesUnder("src");

@@ -1,5 +1,6 @@
 using DMO.Application.Authentication;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Access;
 using DMO.IntegrationTests.Auth.Fakes;
 using DMO.Web.Auth;
 using Microsoft.EntityFrameworkCore;

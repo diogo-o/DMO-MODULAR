@@ -8,6 +8,8 @@ using DMO.Application.Tools;
 using DMO.Domain.Controlo;
 using DMO.Domain.Tools;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Controlo;
+using DMO.Infrastructure.Persistence.ToolJobOn;
 using DMO.Infrastructure.Persistence.Entities;
 using DMO.IntegrationTests.ControloCreate;
 using Microsoft.EntityFrameworkCore;

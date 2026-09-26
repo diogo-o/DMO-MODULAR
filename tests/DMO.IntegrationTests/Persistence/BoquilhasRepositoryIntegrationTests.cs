@@ -5,6 +5,7 @@ using DMO.Application.Repositories;
 using DMO.Domain.Boquilhas;
 using DMO.Domain.Tools;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Boquilhas;
 using DMO.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;

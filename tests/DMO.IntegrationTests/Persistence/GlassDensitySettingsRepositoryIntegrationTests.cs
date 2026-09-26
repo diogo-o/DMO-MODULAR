@@ -2,6 +2,7 @@ using DMO.Application.ControloCreate;
 using DMO.Application.Persistence;
 using DMO.Domain.Controlo;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Controlo;
 using DMO.IntegrationTests.ControloCreate;
 
 // Test-only raw SQL: every interpolated value is a fixed, test-owned token (row identifiers

@@ -6,6 +6,8 @@ using DMO.Application.Repositories;
 using DMO.Application.Tools;
 using DMO.Domain.ControloComparacao;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Controlo;
+using DMO.Infrastructure.Persistence.ToolJobOn;
 using DMO.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;

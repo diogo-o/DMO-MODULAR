@@ -244,7 +244,7 @@ public sealed class Migration006ControloApproveDomainTests
         PersistenceTestDatabase.SkipIfNotConfigured();
 
         var repositorySource = P2T04ProductionScan.Read(
-            "src/DMO.Infrastructure/Persistence/PesoReviewRepository.cs");
+            "src/DMO.Infrastructure/Persistence/Controlo/PesoReviewRepository.cs");
         var endpointsSource = P2T04ProductionScan.Read(
             "src/DMO.Web/Endpoints/ControloApproveEndpoints.cs");
 

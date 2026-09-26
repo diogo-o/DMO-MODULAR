@@ -4,6 +4,7 @@ using DMO.Application.JobOn;
 using DMO.Application.Persistence;
 using DMO.Application.Tools;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.ToolJobOn;
 using DMO.Infrastructure.Persistence.EntityConfigurations;
 using DMO.IntegrationTests.Frontend.Shared;
 using Microsoft.EntityFrameworkCore;

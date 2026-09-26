@@ -7,6 +7,7 @@ using DMO.Application.Repositories;
 using DMO.Application.Tools;
 using DMO.Domain.Tools;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.ToolJobOn;
 using DMO.Infrastructure.Persistence.Entities;
 using DMO.Infrastructure.Persistence.EntityConfigurations;
 using DMO.IntegrationTests.Frontend.Shared;
@@ -479,7 +480,7 @@ public sealed class JobOnRepositoryIntegrationTests
         await PersistenceTestDatabase.ApplyMigrationsAsync(context);
 
         var repositorySource = await File.ReadAllTextAsync(
-            P2T04SourcePath("Persistence/JobOnRepository.cs"));
+            P2T04SourcePath("Persistence/ToolJobOn/JobOnRepository.cs"));
         var updateBody = MethodBody(repositorySource, "public async Task<DomainJobOn> UpdatedAsync(");
 
         var assignedMembers = Regex.Matches(updateBody, @"entity\.(?<name>[A-Za-z]+)\s*(?:\+=|=)[^=]")
@@ -901,7 +902,7 @@ public sealed class JobOnRepositoryIntegrationTests
         await using var context = PersistenceTestDatabase.CreateContext();
         await PersistenceTestDatabase.ApplyMigrationsAsync(context);
 
-        var repositorySource = await File.ReadAllTextAsync(P2T04SourcePath("Persistence/JobOnRepository.cs"));
+        var repositorySource = await File.ReadAllTextAsync(P2T04SourcePath("Persistence/ToolJobOn/JobOnRepository.cs"));
 
         var applySet = repositorySource.IndexOf("private async Task ApplySetAsync(", StringComparison.Ordinal);
         var applyRemove = repositorySource.IndexOf("private async Task ApplyRemoveAsync(", StringComparison.Ordinal);
@@ -927,8 +928,8 @@ public sealed class JobOnRepositoryIntegrationTests
         // No context table carries an update path of its own, and no worker/event exists.
         var p2t04Persistence = Sorted(new[]
         {
-            "Persistence/JobOnRepository.cs", "Persistence/ToolRepository.cs",
-            "Persistence/JobOnLineageDependencyProbe.cs",
+            "Persistence/ToolJobOn/JobOnRepository.cs", "Persistence/ToolJobOn/ToolRepository.cs",
+            "Persistence/ToolJobOn/JobOnLineageDependencyProbe.cs",
         }.Select(P2T04SourcePath).ToList());
 
         foreach (var path in p2t04Persistence)
@@ -1170,7 +1171,7 @@ public sealed class JobOnRepositoryIntegrationTests
         foreach (var testCase in cases)
         {
             var entity = WithoutComments(await File.ReadAllTextAsync(
-                P2T04SourcePath($"Persistence/Entities/{testCase.EntityFile}")));
+                P2T04SourcePath($"Persistence/ToolJobOn/Entities/{testCase.EntityFile}")));
 
             // Exactly eight properties: the key, the two FKs, the frozen triple and the timestamps.
             var properties = Regex.Matches(entity, @"public\s+(?<type>[\w?<>\.]+)\s+(?<name>\w+)\s+\{ get; set; \}")
@@ -1190,7 +1191,7 @@ public sealed class JobOnRepositoryIntegrationTests
             Assert.DoesNotContain("Version", entity, StringComparison.Ordinal);
 
             var configuration = WithoutComments(await File.ReadAllTextAsync(
-                P2T04SourcePath($"Persistence/EntityConfigurations/{testCase.ConfigurationFile}")));
+                P2T04SourcePath($"Persistence/ToolJobOn/EntityConfigurations/{testCase.ConfigurationFile}")));
 
             var declaredColumns = Regex.Matches(configuration, "HasColumnName\\(\"(?<name>[a-z_]+)\"\\)")
                 .Select(match => match.Groups["name"].Value)

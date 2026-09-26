@@ -3,6 +3,7 @@ using DMO.Application.Accounts;
 using DMO.Application.Templates;
 using DMO.IntegrationTests.Persistence;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Access;
 using Microsoft.EntityFrameworkCore;
 
 namespace DMO.IntegrationTests.Access;

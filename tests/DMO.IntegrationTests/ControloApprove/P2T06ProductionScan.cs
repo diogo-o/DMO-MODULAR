@@ -38,9 +38,9 @@ internal static class P2T06ProductionScan
     /// <summary>The new P2-T06 persistence sources (contract Appendix B).</summary>
     public static IReadOnlyList<string> PersistenceSourcePaths { get; } =
     [
-        "src/DMO.Infrastructure/Persistence/PesoReviewRepository.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/PesoReviewDecisionEntity.cs",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/PesoReviewDecisionEntityConfiguration.cs",
+        "src/DMO.Infrastructure/Persistence/Controlo/PesoReviewRepository.cs",
+        "src/DMO.Infrastructure/Persistence/Controlo/Entities/PesoReviewDecisionEntity.cs",
+        "src/DMO.Infrastructure/Persistence/Controlo/EntityConfigurations/PesoReviewDecisionEntityConfiguration.cs",
     ];
 
     /// <summary>The P2-T06 migration and its EF designer (contract §25.1).</summary>
@@ -212,7 +212,7 @@ internal static class P2T06ProductionScan
     public static IReadOnlyDictionary<string, string> PinnedProtectedFoundation { get; } =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["src/DMO.Infrastructure/Persistence/DmoDbContext.cs"] = "32a1b78f1c393f3e19f27ebf0012c78c9ad96320de2afb4d1f33ae6aa844f2c5",
+            ["src/DMO.Infrastructure/Persistence/Core/DmoDbContext.cs"] = "32a1b78f1c393f3e19f27ebf0012c78c9ad96320de2afb4d1f33ae6aa844f2c5",
             ["src/DMO.Infrastructure/Migrations/20260922001736_AccountAndTemplateFoundation.cs"] = "4f5a8136547158fa6fe1b6a404d750e0a113a10c083359bdd1c0e901524c354f",
             ["src/DMO.Infrastructure/Migrations/20260922001736_AccountAndTemplateFoundation.Designer.cs"] = "6a68107f84beb8d893117eef38280ee0a33dd7fe3d6106208766f3c391c46f7a",
             ["src/DMO.Infrastructure/Migrations/20260922001757_TemplateModuleComposition.cs"] = "f9e17cc8fbd99077cc7c570cc80f9c16ea1d9acb7dbd6b3d7caaa3631f34b7fe",
@@ -230,7 +230,7 @@ internal static class P2T06ProductionScan
     public static IReadOnlyList<string> ProtectedP2T05TamperingProbe { get; } =
     [
         "src/DMO.Web/Pages/Controlo/ControloPolicyNames.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/PesoEntity.cs",
-        "src/DMO.Infrastructure/Persistence/PesoRepository.cs",
+        "src/DMO.Infrastructure/Persistence/Controlo/Entities/PesoEntity.cs",
+        "src/DMO.Infrastructure/Persistence/Controlo/PesoRepository.cs",
     ];
 }

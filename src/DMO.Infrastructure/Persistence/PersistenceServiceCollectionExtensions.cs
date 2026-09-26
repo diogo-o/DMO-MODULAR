@@ -4,6 +4,10 @@ using DMO.Application.Boquilhas;
 using DMO.Application.ControloCreate;
 using DMO.Application.JobOn;
 using DMO.Application.Repositories;
+using DMO.Infrastructure.Persistence.Access;
+using DMO.Infrastructure.Persistence.Boquilhas;
+using DMO.Infrastructure.Persistence.Controlo;
+using DMO.Infrastructure.Persistence.ToolJobOn;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DMO.Infrastructure.Persistence;

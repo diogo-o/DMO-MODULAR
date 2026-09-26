@@ -348,7 +348,7 @@ public sealed class P2T07RegressionTests
         var protectedPaths = P2T04ProductionScan.MigrationSourcePaths
             .Concat(
             [
-                "src/DMO.Infrastructure/Persistence/DmoDbContext.cs",
+                "src/DMO.Infrastructure/Persistence/Core/DmoDbContext.cs",
             ])
             .ToList();
 

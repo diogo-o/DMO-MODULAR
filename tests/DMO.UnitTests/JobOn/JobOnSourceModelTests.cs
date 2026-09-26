@@ -51,9 +51,9 @@ public sealed class JobOnSourceModelTests
         // repositories or in the Job On module's own dependency probe (its own table).
         var repositorySources = new[]
         {
-            Read("src/DMO.Infrastructure/Persistence/ToolRepository.cs"),
-            Read("src/DMO.Infrastructure/Persistence/JobOnRepository.cs"),
-            Read("src/DMO.Infrastructure/Persistence/JobOnLineageDependencyProbe.cs"),
+            Read("src/DMO.Infrastructure/Persistence/ToolJobOn/ToolRepository.cs"),
+            Read("src/DMO.Infrastructure/Persistence/ToolJobOn/JobOnRepository.cs"),
+            Read("src/DMO.Infrastructure/Persistence/ToolJobOn/JobOnLineageDependencyProbe.cs"),
         };
 
         foreach (var source in repositorySources)
@@ -78,14 +78,14 @@ public sealed class JobOnSourceModelTests
         // The exclusion is asserted non-vacuous at the end of this test.
         var p2t05PersistenceHolders = new[]
         {
-            "src/DMO.Infrastructure/Persistence/PesoRepository.cs",
-            "src/DMO.Infrastructure/Persistence/RepairerRepository.cs",
-            "src/DMO.Infrastructure/Persistence/MachineRepairerAssignmentRepository.cs",
-            "src/DMO.Infrastructure/Persistence/PdfDirectorySettingsRepository.cs",
-            "src/DMO.Infrastructure/Persistence/EmailListRepository.cs",
-            "src/DMO.Infrastructure/Persistence/EmailTemplateRepository.cs",
-            "src/DMO.Infrastructure/Persistence/DmoPesoContextRead.cs",
-            "src/DMO.Infrastructure/Persistence/PesoJobOnDependencyProbe.cs",
+            "src/DMO.Infrastructure/Persistence/Controlo/PesoRepository.cs",
+            "src/DMO.Infrastructure/Persistence/Controlo/RepairerRepository.cs",
+            "src/DMO.Infrastructure/Persistence/Controlo/MachineRepairerAssignmentRepository.cs",
+            "src/DMO.Infrastructure/Persistence/Controlo/PdfDirectorySettingsRepository.cs",
+            "src/DMO.Infrastructure/Persistence/Controlo/EmailListRepository.cs",
+            "src/DMO.Infrastructure/Persistence/Controlo/EmailTemplateRepository.cs",
+            "src/DMO.Infrastructure/Persistence/Controlo/DmoPesoContextRead.cs",
+            "src/DMO.Infrastructure/Persistence/Controlo/PesoJobOnDependencyProbe.cs",
             "src/DMO.Infrastructure/Configuration/ConfigurationCalculationConfiguration.cs",
         };
 
@@ -97,9 +97,9 @@ public sealed class JobOnSourceModelTests
         // implementation response). The exclusion is asserted non-vacuous at the end of this test.
         var p2t07PersistenceHolders = new[]
         {
-            "src/DMO.Infrastructure/Persistence/BoquilhasRepository.cs",
-            "src/DMO.Infrastructure/Persistence/BoquilhasDependencyProbe.cs",
-            "src/DMO.Infrastructure/Persistence/DmoBoquilhasContextRead.cs",
+            "src/DMO.Infrastructure/Persistence/Boquilhas/BoquilhasRepository.cs",
+            "src/DMO.Infrastructure/Persistence/Boquilhas/BoquilhasDependencyProbe.cs",
+            "src/DMO.Infrastructure/Persistence/Boquilhas/DmoBoquilhasContextRead.cs",
         };
 
         var p2t05ExcludedContents = p2t05PersistenceHolders

@@ -4,6 +4,7 @@ using DMO.Application.Session;
 using DMO.Application.Templates;
 using DMO.IntegrationTests.Persistence;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Access;
 using DMO.Web.Frontend.Shell;
 using DMO.Web.Navigation;
 using Microsoft.EntityFrameworkCore;

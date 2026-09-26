@@ -782,10 +782,10 @@ public sealed class JobOnContractTests
             .Select(file => file.RelativePath)
             .Distinct(StringComparer.Ordinal)
             .ToList();
-        Assert.Equal(new[] { "src/DMO.Infrastructure/Persistence/ToolRepository.cs" }, writers);
+        Assert.Equal(new[] { "src/DMO.Infrastructure/Persistence/ToolJobOn/ToolRepository.cs" }, writers);
 
         // Both inserts happen inside the one Tool create transaction.
-        var repository = ReadSource("src/DMO.Infrastructure/Persistence/ToolRepository.cs");
+        var repository = ReadSource("src/DMO.Infrastructure/Persistence/ToolJobOn/ToolRepository.cs");
         var createStart = repository.IndexOf("public async Task<Tool> CreatedAsync", StringComparison.Ordinal);
         var createEnd = repository.IndexOf("public async Task<IReadOnlyList<ToolUsageOccurrence>> ListUsageOccurrencesAsync", StringComparison.Ordinal);
         Assert.True(createStart >= 0 && createEnd > createStart, "The Tool create transaction must exist.");

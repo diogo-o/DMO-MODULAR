@@ -46,7 +46,7 @@ public sealed class P2T04RegressionTests
     /// </summary>
     private static readonly Dictionary<string, string> PinnedProtectedFoundation = new(StringComparer.Ordinal)
     {
-        ["src/DMO.Infrastructure/Persistence/DmoDbContext.cs"] = "32a1b78f1c393f3e19f27ebf0012c78c9ad96320de2afb4d1f33ae6aa844f2c5",
+        ["src/DMO.Infrastructure/Persistence/Core/DmoDbContext.cs"] = "32a1b78f1c393f3e19f27ebf0012c78c9ad96320de2afb4d1f33ae6aa844f2c5",
         ["src/DMO.Infrastructure/Migrations/20260922001736_AccountAndTemplateFoundation.cs"] = "4f5a8136547158fa6fe1b6a404d750e0a113a10c083359bdd1c0e901524c354f",
         ["src/DMO.Infrastructure/Migrations/20260922001736_AccountAndTemplateFoundation.Designer.cs"] = "6a68107f84beb8d893117eef38280ee0a33dd7fe3d6106208766f3c391c46f7a",
         ["src/DMO.Infrastructure/Migrations/20260922001757_TemplateModuleComposition.cs"] = "f9e17cc8fbd99077cc7c570cc80f9c16ea1d9acb7dbd6b3d7caaa3631f34b7fe",
@@ -801,8 +801,8 @@ public sealed class P2T04RegressionTests
 
         foreach (var configurationPath in new[]
                  {
-                     "src/DMO.Infrastructure/Persistence/EntityConfigurations/ToolEntityConfiguration.cs",
-                     "src/DMO.Infrastructure/Persistence/EntityConfigurations/ToolMachineEntityConfiguration.cs",
+                     "src/DMO.Infrastructure/Persistence/ToolJobOn/EntityConfigurations/ToolEntityConfiguration.cs",
+                     "src/DMO.Infrastructure/Persistence/ToolJobOn/EntityConfigurations/ToolMachineEntityConfiguration.cs",
                  })
         {
             var source = P2T04ProductionScan.Read(configurationPath);

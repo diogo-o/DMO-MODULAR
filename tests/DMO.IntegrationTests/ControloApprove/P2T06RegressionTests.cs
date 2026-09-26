@@ -449,7 +449,7 @@ public sealed class P2T06RegressionTests
     [Fact]
     public void R2O5_TheDecisionWriteTouchesOnlyLifecycleColumnsAndTheTrail()
     {
-        var repository = P2T04ProductionScan.Read("src/DMO.Infrastructure/Persistence/PesoReviewRepository.cs");
+        var repository = P2T04ProductionScan.Read("src/DMO.Infrastructure/Persistence/Controlo/PesoReviewRepository.cs");
 
         // The only entity writes of the decision path are the contracted lifecycle members.
         Assert.Contains("peso.Status =", repository, StringComparison.Ordinal);

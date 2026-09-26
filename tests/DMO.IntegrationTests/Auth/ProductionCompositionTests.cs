@@ -4,6 +4,7 @@ using DMO.Application.Repositories;
 using DMO.Application.Session;
 using DMO.Application.UserAdministration;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Access;
 using DMO.IntegrationTests.Host;
 using DMO.Web.Auth;
 using Microsoft.Extensions.DependencyInjection;

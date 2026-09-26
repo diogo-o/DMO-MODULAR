@@ -35,15 +35,15 @@ internal static class P2T07ProductionScan
     /// superseded and removed).</summary>
     public static IReadOnlyList<string> PersistenceSourcePaths { get; } =
     [
-        "src/DMO.Infrastructure/Persistence/BoquilhasRepository.cs",
-        "src/DMO.Infrastructure/Persistence/BoquilhasDependencyProbe.cs",
-        "src/DMO.Infrastructure/Persistence/DmoBoquilhasContextRead.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/BoquilhaEntity.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/BoquilhaMovementEntity.cs",
-        "src/DMO.Infrastructure/Persistence/Entities/BoquilhaMovementAuditEntity.cs",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/BoquilhaEntityConfiguration.cs",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/BoquilhaMovementEntityConfiguration.cs",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/BoquilhaMovementAuditEntityConfiguration.cs",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/BoquilhasRepository.cs",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/BoquilhasDependencyProbe.cs",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/DmoBoquilhasContextRead.cs",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/Entities/BoquilhaEntity.cs",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/Entities/BoquilhaMovementEntity.cs",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/Entities/BoquilhaMovementAuditEntity.cs",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/EntityConfigurations/BoquilhaEntityConfiguration.cs",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/EntityConfigurations/BoquilhaMovementEntityConfiguration.cs",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/EntityConfigurations/BoquilhaMovementAuditEntityConfiguration.cs",
     ];
 
     /// <summary>The single P2-T07 migration and its EF designer (the OWNER-CLARIFICATION corrected
@@ -109,9 +109,9 @@ internal static class P2T07ProductionScan
         "src/DMO.Application/Boquilhas/",
         "src/DMO.Application/Repositories/IBoquilhas",
         "src/DMO.Application/Persistence/BoquilhasPersistenceException.cs",
-        "src/DMO.Infrastructure/Persistence/Boquilhas",
-        "src/DMO.Infrastructure/Persistence/Entities/Boquilha",
-        "src/DMO.Infrastructure/Persistence/EntityConfigurations/Boquilha",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/Boquilhas",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/Entities/Boquilha",
+        "src/DMO.Infrastructure/Persistence/Boquilhas/EntityConfigurations/Boquilha",
         "src/DMO.Infrastructure/Migrations/20260924051151_BoquilhasDomain",
         "src/DMO.Web/Pages/Boquilhas/",
         "src/DMO.Web/Endpoints/BoquilhasEndpoints.cs",

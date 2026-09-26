@@ -4,6 +4,7 @@ using DMO.Application.Persistence;
 using DMO.Application.TemplateAdministration;
 using DMO.Application.Templates;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Access;
 using DMO.IntegrationTests.Persistence;
 using DMO.Application.Repositories;
 using Microsoft.EntityFrameworkCore;

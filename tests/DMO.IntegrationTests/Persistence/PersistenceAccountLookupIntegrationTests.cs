@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DMO.IntegrationTests.Persistence;
 
 /// <summary>
-/// P1-T03 env-gated integration test — <see cref="DMO.Infrastructure.Persistence.PersistenceAccountLookup"/>
+/// P1-T03 env-gated integration test — <see cref="DMO.Infrastructure.Persistence.Access.PersistenceAccountLookup"/>
 /// against a real database: per-path subject resolution, unknown subject → empty, and
 /// active-filtering stays in the resolver.
 /// </summary>
@@ -53,7 +53,7 @@ public sealed class PersistenceAccountLookupIntegrationTests
             });
             await context.SaveChangesAsync();
 
-            var lookup = new DMO.Infrastructure.Persistence.PersistenceAccountLookup(context);
+            var lookup = new DMO.Infrastructure.Persistence.Access.PersistenceAccountLookup(context);
 
             // User path: subject match -> exactly one User match.
             var userMatches = await lookup.LookupAsync(

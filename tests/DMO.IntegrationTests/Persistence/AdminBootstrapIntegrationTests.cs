@@ -1,6 +1,7 @@
 using DMO.Application.Accounts;
 using DMO.Application.Repositories;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Access;
 using DMO.Web.Startup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;

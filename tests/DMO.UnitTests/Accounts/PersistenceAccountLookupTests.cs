@@ -1,6 +1,7 @@
 using DMO.Application.Accounts;
 using DMO.Application.Authentication;
 using DMO.Infrastructure.Persistence;
+using DMO.Infrastructure.Persistence.Access;
 using DMO.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 
