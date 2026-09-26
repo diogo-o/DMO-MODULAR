@@ -516,18 +516,20 @@ internal static class P2T04ProductionScan
         "tests/DMO.IntegrationTests/Tools/",
         "tests/DMO.IntegrationTests/JobOn/",
         // ---- P2-T05 (disclosed): the new Controlo test surface -----------------------------
-        "tests/DMO.UnitTests/ControloCreate/",
-        "tests/DMO.IntegrationTests/ControloCreate/",
+        "tests/DMO.UnitTests/Controlo/Pesos/",
+        "tests/DMO.UnitTests/Controlo/Settings/",
+        "tests/DMO.IntegrationTests/Controlo/Pesos/",
+        "tests/DMO.IntegrationTests/Controlo/Settings/",
         // ---- P2-T06 (disclosed): the new Controlo Approve test surface --------------------
-        "tests/DMO.UnitTests/ControloApprove/",
-        "tests/DMO.IntegrationTests/ControloApprove/",
+        "tests/DMO.UnitTests/Controlo/Approve/",
+        "tests/DMO.IntegrationTests/Controlo/Approve/",
         // ---- P2-T07 (disclosed): the new Boquilhas test surface ---------------------------
         "tests/DMO.UnitTests/Boquilhas/",
         "tests/DMO.IntegrationTests/Boquilhas/",
         // ---- Peso Comparacao slice (disclosed): the new ControloComparacao unit-test surface --
         // (the integration-side Comparacao persistence tests are disclosed by file name in
         // NewP2T04PersistenceTestFiles below)
-        "tests/DMO.UnitTests/ControloComparacao/",
+        "tests/DMO.UnitTests/Controlo/Comparacao/",
     ];
 
     /// <summary>
@@ -548,8 +550,8 @@ internal static class P2T04ProductionScan
         // P2-T05 test store gains the P2-T06 arrangement surface. All are additive disclosures of
         // the same pins — never weakenings (each change is documented in-file).
         "tests/DMO.UnitTests/Tools/ToolRestrictionTests.cs",
-        "tests/DMO.IntegrationTests/ControloCreate/ControloCreateAccessTests.cs",
-        "tests/DMO.IntegrationTests/ControloCreate/P2T05TestStore.cs",
+        "tests/DMO.IntegrationTests/Controlo/Pesos/ControloCreateAccessTests.cs",
+        "tests/DMO.IntegrationTests/Controlo/Pesos/P2T05TestStore.cs",
         "tests/DMO.IntegrationTests/Persistence/Migration003ToolJobOnDomainCoreTests.cs",
         "tests/DMO.IntegrationTests/Persistence/Migration004ControloCreateDomainTests.cs",
         "tests/DMO.IntegrationTests/Persistence/Migration005GlassDensitySettingsTests.cs",

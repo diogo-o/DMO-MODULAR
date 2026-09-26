@@ -4,7 +4,7 @@ using DMO.Application.Persistence;
 using DMO.Domain.Controlo;
 using DMO.Infrastructure.Persistence;
 using DMO.Infrastructure.Persistence.Controlo;
-using DMO.IntegrationTests.ControloCreate;
+using DMO.IntegrationTests.Controlo.Pesos;
 
 // Test-only raw SQL: every interpolated value is a fixed, test-owned token (row identifiers
 // derived from a fresh Guid) against a disposable database. Analyzer EF1003 suppressed.

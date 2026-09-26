@@ -1,7 +1,7 @@
 using System.Data;
 using System.Text.RegularExpressions;
 using DMO.Infrastructure.Persistence;
-using DMO.IntegrationTests.ControloApprove;
+using DMO.IntegrationTests.Controlo.Approve;
 using DMO.IntegrationTests.JobOn;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;

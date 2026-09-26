@@ -6,7 +6,7 @@ using DMO.Application.Repositories;
 using DMO.Domain.Controlo;
 using DMO.Infrastructure.Persistence;
 using DMO.Infrastructure.Persistence.Controlo;
-using DMO.IntegrationTests.ControloCreate;
+using DMO.IntegrationTests.Controlo.Pesos;
 using DMO.Web.Endpoints.Controlo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;

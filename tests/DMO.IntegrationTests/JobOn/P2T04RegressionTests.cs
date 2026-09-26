@@ -883,7 +883,7 @@ public sealed class P2T04RegressionTests
     /// the P2-T05 paths are themselves pinned by the P2-T05 BND9 row.
     /// </summary>
     private static bool IsPathInP2T05OwnedSurface(string relativePath) =>
-        DMO.IntegrationTests.ControloCreate.P2T05ProductionScan.IsOwnedPath(relativePath);
+        DMO.IntegrationTests.Controlo.Pesos.P2T05ProductionScan.IsOwnedPath(relativePath);
 
     /// <summary>
     /// Whether a repository-relative path belongs to the P2-T07 owned surface (the disclosed

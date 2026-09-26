@@ -6,7 +6,7 @@ using DMO.Domain.Tools;
 using DMO.Infrastructure.Persistence;
 using DMO.Infrastructure.Persistence.Controlo;
 using DMO.Infrastructure.Persistence.ToolJobOn;
-using DMO.IntegrationTests.ControloCreate;
+using DMO.IntegrationTests.Controlo.Pesos;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using NpgsqlTypes;
